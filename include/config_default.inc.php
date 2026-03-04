@@ -1060,6 +1060,27 @@ $conf['default_filters_views'] = array(
 );
 
 // +-----------------------------------------------------------------------+
+// |                     admin menubar plugin links                        |
+// +-----------------------------------------------------------------------+
+
+// Order of plugin entries in the admin menubar sidebar.
+// Array of plugin IDs in desired display order.
+// Managed via Admin > Plugins > Menubar tab.
+$conf['admin_menubar_order'] = array();
+
+// Plugin entries hidden from the admin menubar sidebar.
+// Array of plugin IDs that should not appear.
+$conf['admin_menubar_hidden'] = array();
+
+// Separator definitions for grouping plugin entries in the menubar.
+// Array keyed by separator ID with optional 'label' property.
+$conf['admin_menubar_separators'] = array();
+
+// Keep the plugin submenu always expanded in the admin sidebar.
+// When true, the submenu stays open regardless of which section is active.
+$conf['admin_menubar_always_open'] = false;
+
+// +-----------------------------------------------------------------------+
 // |                                 log                                   |
 // +-----------------------------------------------------------------------+
 // Logs directory, relative to $conf['data_location']

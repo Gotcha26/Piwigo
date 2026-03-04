@@ -2173,7 +2173,18 @@ a.admin-main:hover {color:#fff;}
   float: right;
   margin-right: 5px;
   margin-top: 2px;
+  transition: transform 0.25s ease;
+  transform: rotate(0deg);
 }
+
+#menubar dl.is-open > dt i.open-menu {
+  transform: rotate(-180deg);
+}
+
+#menubar .menubar-separator { padding: 0 20px; }
+#menubar .menubar-separator hr { border: none; border-top: 1px solid #555; margin: 4px 0; }
+
+#menubar dt a.dt-label { display:inline; }
 
 @media all and (max-height: 920px) {
   #menubar ul.scroll {

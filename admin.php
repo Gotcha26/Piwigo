@@ -226,6 +226,7 @@ $template->assign(
     'U_ADMIN'=> PHPWG_ROOT_PATH.'admin.php',
     'U_LOGOUT'=> PHPWG_ROOT_PATH.'index.php?act=logout',
     'U_PLUGINS'=> $link_start.'plugins',
+    'U_PLUGINS_MENUBAR'=> $link_start.'plugins&amp;tab=menubar',
     'U_ADD_PHOTOS' => $link_start.'photos_add',
     'U_CHANGE_THEME' => $change_theme_url,
     'ADMIN_PAGE_TITLE' => 'Piwigo Administration Page',
@@ -398,6 +399,15 @@ $template->assign(
   'DISPLAY_BELL' => $display_bell,
   )
 );
+
+// +-----------------------------------------------------------------------+
+// | Plugin menubar links                                                  |
+// +-----------------------------------------------------------------------+
+
+$plugins_menu_items = trigger_change('admin_menubar_plugin_links', array());
+$plugins_menu_items = apply_admin_menubar_preferences($plugins_menu_items);
+$template->assign('PLUGINS_MENU_ITEMS', $plugins_menu_items);
+$template->assign('PLUGINS_MENU_ALWAYS_OPEN', !empty($conf['admin_menubar_always_open']));
 
 // +-----------------------------------------------------------------------+
 // | Include specific page                                                 |

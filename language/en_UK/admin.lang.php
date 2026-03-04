@@ -1434,6 +1434,14 @@ $lang['Personalization settings'] ='Personalization settings';
 $lang['Change logo'] = 'Change logo';
 $lang['Latest update'] = 'Latest update';
 $lang['See available updates'] = 'See available updates';
+$lang['Plugin Menubar'] = 'Plugin Menubar';
+$lang['Manage entries'] = 'Manage entries';
+$lang['Add a separator'] = 'Add a separator';
+$lang['Remove separator'] = 'Remove separator';
+$lang['No plugin has registered a menubar entry.'] = 'No plugin has registered a menubar entry.';
+$lang['Plugins can register entries using the %s hook.'] = 'Plugins can register entries using the %s hook.';
+$lang['Keep plugin submenu always expanded'] = 'Keep plugin submenu always expanded';
+$lang['When enabled, the plugin list stays open in the sidebar regardless of which section is active.'] = 'When enabled, the plugin list stays open in the sidebar regardless of which section is active.';
 
 
 // Leave this line empty

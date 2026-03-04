@@ -2753,12 +2753,17 @@ function get_old_newsletters_base_url($language='en_UK')
  */
 function get_active_menu($menu_page)
 {
-  global $page;
+  global $page, $template;
 
   if (isset($page['active_menu']))
   {
     return $page['active_menu'];
   }
+
+  // When plugins register menubar items, the Plugins section gains a <dd>
+  // and becomes an accordion group, shifting Tools and Configuration by +1.
+  $plugins_menu_items = $template->get_template_vars('PLUGINS_MENU_ITEMS');
+  $plugins_offset = (!empty($plugins_menu_items)) ? 1 : 0;
 
   switch ($menu_page)
   {
@@ -2785,6 +2790,9 @@ function get_active_menu($menu_page)
     case 'user_activity';
       return 2;
 
+    case 'plugins':
+      return ($plugins_offset > 0) ? 3 : -1;
+
     case 'site_manager':
     case 'site_update':
     case 'stats':
@@ -2792,7 +2800,7 @@ function get_active_menu($menu_page)
     case 'maintenance':
     case 'comments':
     case 'updates':
-      return 3;
+      return 3 + $plugins_offset;
 
     case 'configuration':
     case 'derivatives':
@@ -2801,11 +2809,109 @@ function get_active_menu($menu_page)
     case 'themes':
     case 'theme':
     case 'languages':
-      return 4;
+      return 4 + $plugins_offset;
 
     default:
       return -1;
   }
+}
+
+/**
+ * Apply user preferences (order, visibility, separators) to plugin menubar items.
+ *
+ * Reads from $conf['admin_menubar_order'], $conf['admin_menubar_hidden'],
+ * and $conf['admin_menubar_separators'] to filter and sort the items array.
+ *
+ * @param array $items Plugin menu items from the hook
+ * @return array Filtered and sorted items
+ */
+function apply_admin_menubar_preferences($items)
+{
+  global $conf;
+
+  if (empty($items))
+  {
+    return $items;
+  }
+
+  // Ensure each item has an ID
+  foreach ($items as $idx => &$item)
+  {
+    if (!isset($item['ID']))
+    {
+      $item['ID'] = 'plugin_' . $idx;
+    }
+  }
+  unset($item);
+
+  // Remove hidden items
+  $hidden = $conf['admin_menubar_hidden'];
+  if (is_string($hidden))
+  {
+    $hidden = unserialize($hidden);
+  }
+  if (!is_array($hidden))
+  {
+    $hidden = array();
+  }
+
+  if (!empty($hidden))
+  {
+    $items = array_filter($items, function($item) use ($hidden) {
+      return !in_array($item['ID'], $hidden);
+    });
+    $items = array_values($items);
+  }
+
+  // Apply custom order
+  $order = $conf['admin_menubar_order'];
+  if (is_string($order))
+  {
+    $order = unserialize($order);
+  }
+  if (!is_array($order))
+  {
+    $order = array();
+  }
+
+  if (!empty($order))
+  {
+    // Index items by ID
+    $indexed = array();
+    foreach ($items as $item)
+    {
+      $indexed[$item['ID']] = $item;
+    }
+
+    $sorted = array();
+
+    // Add items in configured order, inserting separators
+    foreach ($order as $id)
+    {
+      if (isset($indexed[$id]))
+      {
+        $sorted[] = $indexed[$id];
+        unset($indexed[$id]);
+      }
+      elseif (strpos($id, 'separator_') === 0)
+      {
+        $sorted[] = array(
+          'ID' => $id,
+          'TYPE' => 'separator',
+        );
+      }
+    }
+
+    // Append any remaining items not in the order list
+    foreach ($indexed as $item)
+    {
+      $sorted[] = $item;
+    }
+
+    $items = $sorted;
+  }
+
+  return $items;
 }
 
 /**

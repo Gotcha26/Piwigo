@@ -5,19 +5,47 @@ jQuery.fn.lightAccordion = function(options) {
     content: 'dd',
     active: 0
   }, options);
-  
+
   return this.each(function() {
     var self = jQuery(this);
-    
+
     var contents = self.find(settings.content),
         headers = self.find(settings.header);
-    
+
+    // Mark initially active dl as open
+    var activeDl = headers.eq(settings.active).closest('dl');
+    activeDl.addClass('is-open');
     contents.not(contents[settings.active]).hide();
-  
-    self.on('click', settings.header, function() {
+
+    // If plugins submenu is pinned open, force it open regardless of active index
+    {if $PLUGINS_MENU_ALWAYS_OPEN}
+    var pluginsDl = jQuery('#menubar-plugins');
+    pluginsDl.find('dd').show();
+    pluginsDl.addClass('is-open');
+    {/if}
+
+    self.on('click', settings.header, function(e) {
+        if (jQuery(e.target).closest('.dt-label').length) {
+          return; // let the link navigate normally
+        }
+        var dl = jQuery(this).closest('dl');
         var content = jQuery(this).next(settings.content);
-        content.slideDown();
-        contents.not(content).slideUp();
+        if (content.is(':visible')) {
+          content.slideUp();
+          dl.removeClass('is-open');
+        } else {
+          content.slideDown();
+          dl.addClass('is-open');
+          // Close others (but not pinned-open plugins submenu)
+          contents.not(content).each(function() {
+            var otherDl = jQuery(this).closest('dl');
+            {if $PLUGINS_MENU_ALWAYS_OPEN}
+            if (otherDl.is('#menubar-plugins')) { return; }
+            {/if}
+            jQuery(this).slideUp();
+            otherDl.removeClass('is-open');
+          });
+        }
     });
   });
 };
@@ -87,8 +115,31 @@ jQuery(document).ready(function() {
       </ul>
 		</dd>
   </dl>
-  <dl>
-		<dt><a href="{$U_PLUGINS}" class="admin-main"><i class="icon-puzzle"> </i><span>{'Plugins'|@translate}&nbsp;</span></a></dt>
+  <dl id="menubar-plugins">
+    <dt>
+    {if $PLUGINS_MENU_ITEMS|@count > 0}
+      <a href="{$U_PLUGINS}" class="admin-main dt-label"><i class="icon-puzzle"> </i><span>{'Plugins'|@translate}&nbsp;</span></a>
+      <i class="icon-down-open open-menu"></i>
+    {else}
+      <a href="{$U_PLUGINS}" class="admin-main">
+        <i class="icon-puzzle"> </i>
+        <span>{'Plugins'|@translate}&nbsp;</span>
+      </a>
+    {/if}
+    </dt>
+    {if $PLUGINS_MENU_ITEMS|@count > 0}
+    <dd>
+      <ul>
+        {foreach from=$PLUGINS_MENU_ITEMS item=item}
+        {if isset($item.TYPE) && $item.TYPE == 'separator'}
+        <li class="menubar-separator"><hr></li>
+        {else}
+        <li><a href="{$item.URL}"><i class="{$item.ICON|default:'icon-puzzle'}"></i>{$item.NAME}</a></li>
+        {/if}
+        {/foreach}
+      </ul>
+    </dd>
+    {/if}
   </dl>
   <dl>
 		<dt><i class="icon-wrench"> </i><span>{'Tools'|@translate}&nbsp;</span><i class="icon-down-open open-menu"></i></dt>

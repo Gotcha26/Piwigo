@@ -1441,5 +1441,13 @@ $lang['See previous newsletters'] = 'Consultez les newsletters précédentes';
 $lang['Understood, do not show again'] = 'Compris, ne plus afficher';
 $lang['Latest update'] = 'Dernière mise à jour';
 $lang['See available updates'] = 'Voir les mises à jour disponibles';
+$lang['Plugin Menubar'] = 'Menubar des plugins';
+$lang['Manage entries'] = 'Gérer les entrées';
+$lang['Add a separator'] = 'Ajouter un séparateur';
+$lang['Remove separator'] = 'Supprimer le séparateur';
+$lang['No plugin has registered a menubar entry.'] = 'Aucun plugin n\'a enregistré d\'entrée dans le menubar.';
+$lang['Plugins can register entries using the %s hook.'] = 'Les plugins peuvent enregistrer des entrées en utilisant le hook %s.';
+$lang['Keep plugin submenu always expanded'] = 'Garder le sous-menu plugins toujours ouvert';
+$lang['When enabled, the plugin list stays open in the sidebar regardless of which section is active.'] = 'Quand cette option est activée, la liste des plugins reste ouverte dans la barre latérale quelle que soit la section active.';
 
 // Leave this line empty

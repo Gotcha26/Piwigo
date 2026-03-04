@@ -147,6 +147,7 @@ function add_core_tabs($sheets, $tab_id)
         $sheets['update'] = array('caption' => '<span class="icon-arrows-cw"></span>'.l10n('Check for updates'), 'url' => $my_base_url.'&amp;tab=update');
         $sheets['new'] = array('caption' => '<span class="icon-plus-circled"></span>'.l10n('Add New Plugin'), 'url' => $my_base_url.'&amp;tab=new');
       }
+      $sheets['menubar'] = array('caption' => '<span class="icon-puzzle"></span>'.l10n('Plugin Menubar'), 'url' => $my_base_url.'&amp;tab=menubar');
       break;
 
     case 'rating':
