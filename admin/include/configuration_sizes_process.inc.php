@@ -41,6 +41,14 @@ if ($_POST['resize_quality'] < 50 or $_POST['resize_quality'] > 98)
   $errors['resize_quality'] = '[50..98]';
 }
 
+// global sharpen validation
+$global_sharpen_enabled = isset($_POST['global_sharpen_enabled']);
+$global_sharpen_value = intval($_POST['global_sharpen_value']);
+if ($global_sharpen_value < 0 || $global_sharpen_value > 100)
+{
+  $errors['global_sharpen_value'] = '[0..100]';
+}
+
 $pderivatives = $_POST['d'];
 
 // step 1 - sanitize HTML input
@@ -230,11 +238,21 @@ if (count($errors) == 0)
   ImageStdParams::set_and_save($enabled_by);
   ImageStdParams::set_and_save_disabled($disabled);
 
-  if (count($changed_types))
+  // save global sharpen settings
+  $global_sharpen_changed = ($conf['global_sharpen_enabled'] != $global_sharpen_enabled
+    || $conf['global_sharpen_value'] != $global_sharpen_value);
+  conf_update_param('global_sharpen_enabled', $global_sharpen_enabled ? 'true' : 'false');
+  conf_update_param('global_sharpen_value', $global_sharpen_value);
+
+  if ($global_sharpen_changed)
+  {
+    clear_derivative_cache();
+  }
+  elseif (count($changed_types))
   {
     clear_derivative_cache($changed_types);
   }
-  
+
   $template->assign(
     array(
       'save_success' => l10n('Your configuration settings are saved'),
@@ -262,6 +280,8 @@ else
   $template->assign('derivatives', $pderivatives);
   $template->assign('ferrors', $errors);
   $template->assign('resize_quality', $_POST['resize_quality']);
+  $template->assign('global_sharpen_enabled', $global_sharpen_enabled);
+  $template->assign('global_sharpen_value', $global_sharpen_value);
   $page['sizes_loaded_in_tpl'] = true;
 }
 ?>

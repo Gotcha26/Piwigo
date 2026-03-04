@@ -982,6 +982,11 @@ $conf['derivatives_strip_metadata_threshold'] = 256000;
 // different from derivatives.resize_quality
 $conf['animated_webp_compression_quality'] = 70;
 
+// Global sharpening: when enabled, overrides per-derivative sharpen values
+// with a single value applied to all derivative sizes
+$conf['global_sharpen_enabled'] = false;
+$conf['global_sharpen_value'] = 0;
+
 //Maximum Ajax requests at once, for thumbnails on-the-fly generation
 $conf['max_requests']=3;
 

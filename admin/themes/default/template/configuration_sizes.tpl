@@ -65,6 +65,27 @@ $(".restore-settings-button").each(function() {
     jQuery(this).css("visibility", "hidden");
 		return false;
   });
+
+  // Sharpen slider sync
+  window.syncSharpenSlider = function(rangeEl, numId) {
+    document.getElementById(numId).value = rangeEl.value;
+  };
+  window.syncSharpenNum = function(numEl, rangeId) {
+    document.getElementById(rangeId).value = numEl.value;
+  };
+
+  // Global sharpen toggle
+  function toggleGlobalSharpen() {
+    var isGlobal = jQuery("#globalSharpenToggle").is(":checked");
+    jQuery("#globalSharpenControls").toggle(isGlobal);
+    jQuery(".sharpen-per-derivative").each(function() {
+      jQuery(this).find("input").prop("disabled", isGlobal);
+      jQuery(this).css("opacity", isGlobal ? 0.4 : 1);
+    });
+  }
+
+  jQuery("#globalSharpenToggle").on("change", toggleGlobalSharpen);
+  toggleGlobalSharpen();
 })();
 {/footer_script}
 
@@ -77,6 +98,11 @@ $(".restore-settings-button").each(function() {
 .showDetails { padding:0; }
 .sizeDetails { display:none;margin-left:10px; }
 .sizeEditOpen { margin-left:10px; }
+.sharpen-slider-wrap { display:inline-flex; align-items:center; gap:6px; }
+.sharpen-slider-wrap input[type="range"] { width:120px; vertical-align:middle; }
+.sharpen-slider-wrap input[type="number"] { width:50px; }
+#globalSharpenSection { margin:10px 0 0 20px; }
+#globalSharpenControls { margin:6px 0 0 24px; }
 {/html_style}
 
 <form method="post" action="{$F_ACTION}" class="properties">
@@ -198,8 +224,11 @@ $(".restore-settings-button").each(function() {
             <tr>
               <td>{'Sharpen'|translate}</td>
               <td>
-                <input type="text" name="d[{$type}][sharpen]" maxlength="4" size="4"  value="{$d.sharpen}"{if isset($ferrors.$type.sharpen)} class="dError"{/if}> %
-                {if isset($ferrors.$type.sharpen)}<span class="dErrorDesc" title="{$ferrors.$type.sharpen}">!</span>{/if}
+                <span class="sharpen-slider-wrap sharpen-per-derivative">
+                  <input type="range" min="0" max="100" step="1" value="{$d.sharpen}" id="sharpen_range_{$type}" list="sharpen_ticks" oninput="syncSharpenSlider(this, 'sharpen_num_{$type}')">
+                  <input type="number" min="0" max="100" step="1" value="{$d.sharpen}" name="d[{$type}][sharpen]" id="sharpen_num_{$type}" size="3" oninput="syncSharpenNum(this, 'sharpen_range_{$type}')"{if isset($ferrors.$type.sharpen)} class="dError"{/if}> %
+                  {if isset($ferrors.$type.sharpen)}<span class="dErrorDesc" title="{$ferrors.$type.sharpen}">!</span>{/if}
+                </span>
               </td>
             </tr>
           </table> {* #sizeEdit *}
@@ -213,6 +242,31 @@ $(".restore-settings-button").each(function() {
     <input type="text" name="resize_quality" value="{$resize_quality}" size="3" maxlength="3"{if isset($ferrors.resize_quality)} class="dError"{/if}> %
     {if isset($ferrors.resize_quality)}<span class="dErrorDesc" title="{$ferrors.resize_quality}">!</span>{/if}
   </p>
+
+  <datalist id="sharpen_ticks">
+    <option value="0"></option>
+    <option value="20"></option>
+    <option value="50"></option>
+    <option value="80"></option>
+    <option value="100"></option>
+  </datalist>
+
+  <div id="globalSharpenSection" style="{if isset($ferrors)} display:block;{/if}" class="sizeDetails">
+    <label class="font-checkbox">
+      <span class="icon-check"></span>
+      <input type="checkbox" name="global_sharpen_enabled" id="globalSharpenToggle" {if $global_sharpen_enabled}checked="checked"{/if}>
+      {'Global sharpening'|translate}
+    </label>
+    <div id="globalSharpenControls">
+      <span class="sharpen-slider-wrap">
+        <input type="range" min="0" max="100" step="1" value="{$global_sharpen_value}" id="global_sharpen_range" list="sharpen_ticks" oninput="syncSharpenSlider(this, 'global_sharpen_num')">
+        <input type="number" min="0" max="100" step="1" value="{$global_sharpen_value}" name="global_sharpen_value" id="global_sharpen_num" size="3" oninput="syncSharpenNum(this, 'global_sharpen_range')"{if isset($ferrors.global_sharpen_value)} class="dError"{/if}> %
+        {if isset($ferrors.global_sharpen_value)}<span class="dErrorDesc" title="{$ferrors.global_sharpen_value}">!</span>{/if}
+      </span>
+    </div>
+    <p style="margin:4px 0 0 24px; font-style:italic; color:#888;">{'Apply the same sharpening to all derivative sizes'|translate}</p>
+  </div>
+
   <p style="margin:10px 0 0 0;{if isset($ferrors)} display:block;{/if}" class="sizeDetails">
     <a href="{$F_ACTION}&action=restore_settings" class="restore-settings-button">{'Reset to default values'|translate}</a>
   </p>
@@ -234,7 +288,7 @@ $(".restore-settings-button").each(function() {
 {/if}
       <div class="savebar-footer-block">
         <button class="buttonLike"  type="submit" name="submit" {if $isWebmaster != 1}disabled{/if}><i class="icon-floppy"></i> {'Save Settings'|@translate}</button>
-      </div>    
+      </div>
     </div>
     <input type="hidden" name="pwg_token" value="{$PWG_TOKEN}">
   </div>

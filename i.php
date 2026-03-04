@@ -558,9 +558,14 @@ if ($scaled_size)
   $timing['scale'] = time_step($step);
 }
 
-if ($params->sharpen)
+$sharpen_value = $params->sharpen;
+if ($conf['global_sharpen_enabled'] && $conf['global_sharpen_value'] > 0)
 {
-  $changes += $image->sharpen( $params->sharpen );
+  $sharpen_value = $conf['global_sharpen_value'];
+}
+if ($sharpen_value)
+{
+  $changes += $image->sharpen( $sharpen_value );
   $timing['sharpen'] = time_step($step);
 }
 

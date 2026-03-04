@@ -610,6 +610,9 @@ switch ($page['section'])
         $tpl_vars[$custom] = ($now-$time<=24*3600) ? l10n('today') : time_since($time, 'day');
       }
       $template->assign('custom_derivatives', $tpl_vars);
+
+      $template->assign('global_sharpen_enabled', $conf['global_sharpen_enabled']);
+      $template->assign('global_sharpen_value', $conf['global_sharpen_value']);
     }
 
     break;
