@@ -104,6 +104,7 @@ if (isset($_POST['submit']) and is_webmaster())
   conf_update_param('admin_menubar_hidden', $new_hidden, true);
   conf_update_param('admin_menubar_separators', $new_separators, true);
   conf_update_param('admin_menubar_always_open', !empty($_POST['always_open']));
+  conf_update_param('admin_menubar_truncate_names', !empty($_POST['truncate_names']));
 
   // Redirect to GET to avoid browser "resend form" dialog
   redirect(get_root_url().'admin.php?page=plugins&tab=menubar&saved=1');
@@ -161,6 +162,7 @@ $template->assign(array(
   'F_ACTION' => get_root_url() . 'admin.php?page=plugins&amp;tab=menubar',
   'isWebmaster' => (is_webmaster()) ? 1 : 0,
   'ALWAYS_OPEN' => !empty($conf['admin_menubar_always_open']),
+  'TRUNCATE_NAMES' => !empty($conf['admin_menubar_truncate_names']),
 ));
 
 if (!empty($_GET['saved']))

@@ -408,6 +408,7 @@ $plugins_menu_items = trigger_change('admin_menubar_plugin_links', array());
 $plugins_menu_items = apply_admin_menubar_preferences($plugins_menu_items);
 $template->assign('PLUGINS_MENU_ITEMS', $plugins_menu_items);
 $template->assign('PLUGINS_MENU_ALWAYS_OPEN', !empty($conf['admin_menubar_always_open']));
+$template->assign('PLUGINS_MENU_TRUNCATE_NAMES', !empty($conf['admin_menubar_truncate_names']));
 
 // +-----------------------------------------------------------------------+
 // | Include specific page                                                 |

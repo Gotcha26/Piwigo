@@ -54,6 +54,29 @@ $('#menubar').lightAccordion({
   active: {$ACTIVE_MENU}
 });
 
+// Plugin menubar name display mode
+jQuery(document).ready(function() {
+  jQuery('#menubar-plugins dd li a').each(function() {
+    var $a = jQuery(this);
+    // Wrap text node in .menubar-name (the scrolling element)
+    $a.contents().filter(function() { return this.nodeType === 3; }).wrap('<span class="menubar-name"></span>');
+    var $name = $a.find('.menubar-name');
+    // Wrap .menubar-name in .menubar-name-clip (the clipping container)
+    $name.wrap('<span class="menubar-name-clip"></span>');
+    {if $PLUGINS_MENU_TRUNCATE_NAMES}
+    // Measure actual text width (temporarily unconstrained)
+    var fullWidth = $name[0].scrollWidth;
+    if (fullWidth > 154) {
+      $name.addClass('name-overflow');
+      var scrollDist = fullWidth - 154;
+      $a[0].style.setProperty('--scroll-dist', '-' + scrollDist + 'px');
+      // 40px per second, min 1.5s
+      $a[0].style.setProperty('--scroll-duration', Math.max(1.5, scrollDist / 40) + 's');
+    }
+    {/if}
+  });
+});
+
 /* in case we have several infos/errors/warnings display bullets */
 jQuery(document).ready(function() {
   var eiw = ["infos","erros","warnings", "messages"];

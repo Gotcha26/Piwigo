@@ -1442,6 +1442,9 @@ $lang['No plugin has registered a menubar entry.'] = 'No plugin has registered a
 $lang['Plugins can register entries using the %s hook.'] = 'Plugins can register entries using the %s hook.';
 $lang['Keep plugin submenu always expanded'] = 'Keep plugin submenu always expanded';
 $lang['When enabled, the plugin list stays open in the sidebar regardless of which section is active.'] = 'When enabled, the plugin list stays open in the sidebar regardless of which section is active.';
+$lang['Menubar settings'] = 'Menubar settings';
+$lang['Truncate long names'] = 'Truncate long names';
+$lang['When enabled, names exceeding 23 characters are truncated with ellipsis and scroll on hover. When disabled, names wrap to the next line.'] = 'When enabled, names exceeding 23 characters are truncated with ellipsis and scroll on hover. When disabled, names wrap to the next line.';
 
 
 // Leave this line empty

@@ -2186,6 +2186,61 @@ a.admin-main:hover {color:#fff;}
 
 #menubar dt a.dt-label { display:inline; }
 
+/* Plugin menubar name display modes */
+#menubar-plugins dd li a {
+  display: flex;
+  align-items: center;
+}
+
+/* Clipping container: sits right after the icon, clips the scrolling text */
+#menubar-plugins dd li a .menubar-name-clip {
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 154px;
+  vertical-align: middle;
+}
+
+/* On hover: remove ellipsis and enable transform for scroll animation */
+#menubar-plugins dd li a:hover .menubar-name-clip {
+  text-overflow: clip;
+}
+
+#menubar-plugins dd li a:hover .menubar-name {
+  display: inline-block;
+}
+
+/* The scrolling text element */
+#menubar-plugins dd li a .menubar-name {
+  display: inline;
+  white-space: nowrap;
+}
+
+/* Scroll on hover for overflowing names only */
+#menubar-plugins dd li a:hover .menubar-name.name-overflow {
+  animation: menubar-name-scroll var(--scroll-duration, 3s) linear infinite;
+}
+
+@keyframes menubar-name-scroll {
+  0%   { transform: translateX(0); }
+  15%  { transform: translateX(0); }
+  85%  { transform: translateX(var(--scroll-dist, 0px)); }
+  100% { transform: translateX(var(--scroll-dist, 0px)); }
+}
+
+/* Wrap mode: clip expands to allow wrapping */
+#menubar-plugins dd li a.name-wrap .menubar-name-clip {
+  overflow: visible;
+  max-width: 154px;
+}
+
+#menubar-plugins dd li a.name-wrap .menubar-name {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.3;
+}
+
 @media all and (max-height: 920px) {
   #menubar ul.scroll {
     max-height: 400px;

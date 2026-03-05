@@ -206,6 +206,8 @@ jQuery(document).ready(function() {
   margin: 10px 0;
   display: inline-block;
 }
+
+
 {/literal}{/html_style}
 
 {if $HAS_ITEMS}
@@ -263,16 +265,32 @@ jQuery(document).ready(function() {
     </ul>
   </fieldset>
 
-  <div class="savebar-footer">
-    <div class="savebar-footer-start">
-      <div class="savebar-footer-block">
-        <label class="font-checkbox" title="{'When enabled, the plugin list stays open in the sidebar regardless of which section is active.'|@translate}">
-          <span class="icon-check"></span>
+  <fieldset>
+    <legend><i class="icon-cog"></i> {'Menubar settings'|@translate}</legend>
+
+    <div style="display:flex; flex-direction:column; gap:12px; padding:8px 0;">
+
+      <div style="display:flex; align-items:center; gap:12px;">
+        <label class="switch" title="{'When enabled, the plugin list stays open in the sidebar regardless of which section is active.'|@translate}">
           <input type="checkbox" name="always_open" {if $ALWAYS_OPEN}checked="checked"{/if}>
-           {'Keep plugin submenu always expanded'|@translate}
+          <span class="slider round"></span>
         </label>
+        <span>{'Keep plugin submenu always expanded'|@translate}</span>
       </div>
+
+      <div style="display:flex; align-items:center; gap:12px;">
+        <label class="switch" title="{'When enabled, names exceeding 23 characters are truncated with ellipsis and scroll on hover. When disabled, names wrap to the next line.'|@translate}">
+          <input type="checkbox" name="truncate_names" id="truncate_names" {if $TRUNCATE_NAMES}checked="checked"{/if}>
+          <span class="slider round"></span>
+        </label>
+        <span>{'Truncate long names'|@translate}</span>
+      </div>
+
     </div>
+  </fieldset>
+
+  <div class="savebar-footer">
+    <div class="savebar-footer-start"></div>
     <div class="savebar-footer-end">
       <div class="savebar-footer-block">
         <button class="buttonLike" type="submit" name="submit" {if $isWebmaster != 1}disabled{/if}><i class="icon-floppy"></i> {'Save Settings'|@translate}</button>

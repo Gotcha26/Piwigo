@@ -1080,6 +1080,10 @@ $conf['admin_menubar_separators'] = array();
 // When true, the submenu stays open regardless of which section is active.
 $conf['admin_menubar_always_open'] = false;
 
+// Truncate long plugin names in the menubar with ellipsis and scroll on hover.
+// When false, long names wrap to the next line instead.
+$conf['admin_menubar_truncate_names'] = true;
+
 // +-----------------------------------------------------------------------+
 // |                                 log                                   |
 // +-----------------------------------------------------------------------+
