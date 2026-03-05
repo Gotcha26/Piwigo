@@ -6,6 +6,8 @@
 {footer_script require='jquery.ui.sortable,jquery.jgrowl,jquery.sort'}
 var dragIconSrc = '{$themeconf.admin_icon_dir}/cat_move.png';
 var successHead = '{'Update Complete'|@translate|@escape:'javascript'}';
+var strSortAtoZ = '{'Sort A to Z'|@translate|@escape:'javascript'}';
+var strSortZtoA = '{'Sort Z to A'|@translate|@escape:'javascript'}';
 {if isset($save_success)}
 var jGrowlSuccessMsg = '{$save_success|escape:'javascript'}';
 {/if}
@@ -71,11 +73,24 @@ jQuery(document).ready(function() {
     jQuery('#menubar-search').val('').trigger('input');
   });
 
-  // Sort A→Z
-  jQuery('#menubar-sort-az').on('click', function() {
+  // Sort A→Z / Z→A toggle
+  var sortAscending = true;
+  jQuery('#menubar-sort-az').on('click', function(e) {
+    e.preventDefault();
+    var $btn = jQuery(this);
     jQuery('.pluginMenuUl li.pluginMenuLi:not(.pluginMenuSeparator)').sortElements(function(a, b) {
-      return jQuery(a).find('strong').text() > jQuery(b).find('strong').text() ? 1 : -1;
+      var comparison = jQuery(a).find('strong').text() > jQuery(b).find('strong').text() ? 1 : -1;
+      return sortAscending ? comparison : -comparison;
     });
+    sortAscending = !sortAscending;
+    // Update button label and icon
+    if (sortAscending) {
+      $btn.find('i').removeClass('sort-desc');
+      $btn.find('.sort-label').text(strSortAtoZ);
+    } else {
+      $btn.find('i').addClass('sort-desc');
+      $btn.find('.sort-label').text(strSortZtoA);
+    }
     updateOrder();
   });
 
@@ -207,6 +222,15 @@ jQuery(document).ready(function() {
   display: inline-block;
 }
 
+#menubar-sort-az i {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+#menubar-sort-az i.sort-desc {
+  transform: scaleY(-1);
+}
+
 
 {/literal}{/html_style}
 
@@ -218,7 +242,7 @@ jQuery(document).ready(function() {
   <div class="titrePage">
     <div class="sort">
       <div class="sort-actions">
-        <a href="#" id="menubar-sort-az" class="buttonLike" title="{'Sort A to Z'|@translate}"><i class="icon-sort-name-up"></i> A &rarr; Z</a>
+        <a href="#" id="menubar-sort-az" class="buttonLike" title="{'Sort A to Z'|@translate}"><i class="icon-sort-name-up"></i> <span class="sort-label">{'Sort A to Z'|@translate}</span></a>
         <div id="search-plugin">
           <span class="icon-search search-icon"> </span>
           <span class="icon-cancel search-cancel"></span>

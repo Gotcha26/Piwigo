@@ -1452,5 +1452,7 @@ $lang['When enabled, the plugin list stays open in the sidebar regardless of whi
 $lang['Menubar settings'] = 'Paramètres du menubar';
 $lang['Truncate long names'] = 'Tronquer les noms longs';
 $lang['When enabled, names exceeding 23 characters are truncated with ellipsis and scroll on hover. When disabled, names wrap to the next line.'] = 'Quand cette option est activée, les noms dépassant 23 caractères sont tronqués avec des points de suspension et défilent au survol. Sinon, les noms passent à la ligne.';
+$lang['Sort A to Z'] = 'Trier A à Z';
+$lang['Sort Z to A'] = 'Trier Z à A';
 
 // Leave this line empty
