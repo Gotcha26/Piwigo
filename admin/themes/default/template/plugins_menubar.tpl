@@ -1,8 +1,9 @@
+{combine_script id='jquery.sort' load='footer' path='themes/default/js/plugins/jquery.sort.js'}
 {combine_script id='common' load='footer' path='admin/themes/default/js/common.js'}
 {combine_script id='jquery.jgrowl' load='footer' require='jquery' path='themes/default/js/plugins/jquery.jgrowl_minimized.js'}
 {combine_css path="themes/default/js/plugins/jquery.jgrowl.css"}
 
-{footer_script require='jquery.ui.sortable,jquery.jgrowl'}
+{footer_script require='jquery.ui.sortable,jquery.jgrowl,jquery.sort'}
 var dragIconSrc = '{$themeconf.admin_icon_dir}/cat_move.png';
 var successHead = '{'Update Complete'|@translate|@escape:'javascript'}';
 {if isset($save_success)}
@@ -53,6 +54,28 @@ jQuery(document).ready(function() {
   });
 
   jQuery("#pluginMenubarForm").submit(function() {
+    updateOrder();
+  });
+
+  // Search filter
+  jQuery('#menubar-search').on('input', function() {
+    var term = this.value.toUpperCase();
+    jQuery('.pluginMenuLi:not(.pluginMenuSeparator)').each(function() {
+      var name = jQuery(this).find('strong').text().toUpperCase();
+      jQuery(this).toggle(term === '' || name.indexOf(term) !== -1);
+    });
+    jQuery('.search-cancel').toggle(term !== '');
+  });
+
+  jQuery('.search-cancel').on('click', function() {
+    jQuery('#menubar-search').val('').trigger('input');
+  });
+
+  // Sort A→Z
+  jQuery('#menubar-sort-az').on('click', function() {
+    jQuery('.pluginMenuUl li.pluginMenuLi:not(.pluginMenuSeparator)').sortElements(function(a, b) {
+      return jQuery(a).find('strong').text() > jQuery(b).find('strong').text() ? 1 : -1;
+    });
     updateOrder();
   });
 
@@ -189,6 +212,19 @@ jQuery(document).ready(function() {
 <form id="pluginMenubarForm" action="{$F_ACTION}" method="post">
 
   <input type="hidden" name="menubar_items_order" id="menubar_items_order" value="">
+
+  <div class="titrePage">
+    <div class="sort">
+      <div class="sort-actions">
+        <a href="#" id="menubar-sort-az" class="buttonLike" title="{'Sort A to Z'|@translate}"><i class="icon-sort-name-up"></i> A &rarr; Z</a>
+        <div id="search-plugin">
+          <span class="icon-search search-icon"> </span>
+          <span class="icon-cancel search-cancel"></span>
+          <input class="search-input" type="text" placeholder="{'Search'|@translate}" id="menubar-search">
+        </div>
+      </div>
+    </div>
+  </div>
 
   <fieldset>
     <legend><i class="icon-puzzle"></i> {'Plugin Menubar'|@translate} &mdash; {'Manage entries'|@translate}</legend>
