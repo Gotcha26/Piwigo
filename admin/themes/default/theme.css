@@ -2224,8 +2224,8 @@ a.admin-main:hover {color:#fff;}
 
 @keyframes menubar-name-scroll {
   0%   { transform: translateX(0); }
-  15%  { transform: translateX(0); }
-  85%  { transform: translateX(var(--scroll-dist, 0px)); }
+  10%  { transform: translateX(0); }
+  60%  { transform: translateX(var(--scroll-dist, 0px)); }
   100% { transform: translateX(var(--scroll-dist, 0px)); }
 }
 
