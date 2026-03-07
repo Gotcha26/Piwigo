@@ -24,6 +24,20 @@ jQuery.fn.lightAccordion = function(options) {
     pluginsDl.addClass('is-open');
     {/if}
 
+    // Ensure no other dl has is-open except the active one (and pinned Plugins if applicable)
+    headers.closest('dl').each(function(i) {
+      var dl = jQuery(this);
+      if (i !== settings.active) {
+        {if !$PLUGINS_MENU_ALWAYS_OPEN}
+          dl.removeClass('is-open');
+        {else}
+          if (!dl.is('#menubar-plugins')) {
+            dl.removeClass('is-open');
+          }
+        {/if}
+      }
+    });
+
     self.on('click', settings.header, function(e) {
         if (jQuery(e.target).closest('.dt-label').length) {
           return; // let the link navigate normally
