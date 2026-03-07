@@ -1088,6 +1088,13 @@ $conf['admin_menubar_truncate_names'] = true;
 // entries that have an icon. When false, the name uses the full available width.
 $conf['admin_menubar_align_icons'] = true;
 
+// When true, any active plugin declaring "Has Settings: true/webmaster" in its
+// main.inc.php header is automatically added to the menubar if it has not
+// registered itself via the admin_menubar_plugin_links hook.
+// These fallback entries are tagged with SOURCE=fallback and can be hidden/sorted
+// from Admin > Plugins > Menubar like any other entry.
+$conf['admin_menubar_fallback_plugins'] = true;
+
 // +-----------------------------------------------------------------------+
 // |                                 log                                   |
 // +-----------------------------------------------------------------------+

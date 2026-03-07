@@ -171,7 +171,7 @@ jQuery(document).ready(function() {
         {if isset($item.TYPE) && $item.TYPE == 'separator'}
         <li class="menubar-separator"><hr></li>
         {else}
-        <li><a href="{$item.URL}">{if $item.ICON}<i class="{$item.ICON}"></i>{elseif $PLUGINS_MENU_ALIGN_ICONS}<i class="menubar-icon-placeholder"></i>{/if}{$item.NAME}</a></li>
+        <li><a href="{$item.URL}">{if isset($item.ICON) && $item.ICON != ''}<i class="{$item.ICON}"></i>{elseif $PLUGINS_MENU_ALIGN_ICONS}<i class="menubar-icon-placeholder"></i>{/if}{$item.NAME}</a></li>
         {/if}
         {/foreach}
       </ul>

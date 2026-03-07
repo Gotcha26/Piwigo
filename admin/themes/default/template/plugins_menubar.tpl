@@ -318,6 +318,14 @@ jQuery(document).ready(function() {
         <span>{'Align names with icons'|@translate}</span>
       </div>
 
+      <div style="display:flex; align-items:center; gap:12px;">
+        <label class="switch" title="{'When enabled, active plugins declaring Has Settings in their header are automatically added to the menubar if they have not registered via the hook.'|@translate}">
+          <input type="checkbox" name="fallback_plugins" {if $FALLBACK_PLUGINS}checked="checked"{/if}>
+          <span class="slider round"></span>
+        </label>
+        <span>{'Auto-add plugins with settings page'|@translate}</span>
+      </div>
+
     </div>
   </fieldset>
 

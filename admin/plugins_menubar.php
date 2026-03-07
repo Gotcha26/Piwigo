@@ -16,10 +16,10 @@ if (!is_webmaster())
   $page['warnings'][] = str_replace('%s', l10n('user_status_webmaster'), l10n('%s status is required to edit parameters.'));
 }
 
-// Collect plugin menubar items from the hook
-$plugins_menu_items = trigger_change('admin_menubar_plugin_links', array());
+// Collect plugin menubar items (hook + fallback for plugins with Has Settings)
+$plugins_menu_items = get_admin_menubar_plugin_links();
 
-// Ensure each item has an ID
+// Ensure each item has an ID (safety net for hook items without ID)
 foreach ($plugins_menu_items as $idx => &$item)
 {
   if (!isset($item['ID']))
@@ -106,6 +106,7 @@ if (isset($_POST['submit']) and is_webmaster())
   conf_update_param('admin_menubar_always_open', !empty($_POST['always_open']));
   conf_update_param('admin_menubar_truncate_names', !empty($_POST['truncate_names']));
   conf_update_param('admin_menubar_align_icons', !empty($_POST['align_icons']));
+  conf_update_param('admin_menubar_fallback_plugins', !empty($_POST['fallback_plugins']));
 
   // Redirect to GET to avoid browser "resend form" dialog
   redirect(get_root_url().'admin.php?page=plugins&tab=menubar&saved=1');
@@ -165,6 +166,7 @@ $template->assign(array(
   'ALWAYS_OPEN' => !empty($conf['admin_menubar_always_open']),
   'TRUNCATE_NAMES' => !empty($conf['admin_menubar_truncate_names']),
   'ALIGN_ICONS' => !empty($conf['admin_menubar_align_icons']),
+  'FALLBACK_PLUGINS' => !empty($conf['admin_menubar_fallback_plugins']),
 ));
 
 if (!empty($_GET['saved']))

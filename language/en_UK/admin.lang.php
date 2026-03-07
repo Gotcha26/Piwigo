@@ -1449,6 +1449,8 @@ $lang['Sort A to Z'] = 'Sort A to Z';
 $lang['Sort Z to A'] = 'Sort Z to A';
 $lang['Align names with icons'] = 'Align names with icons';
 $lang['When enabled, a blank space is reserved for entries without an icon, keeping all names aligned.'] = 'When enabled, a blank space is reserved for entries without an icon, keeping all names aligned.';
+$lang['Auto-add plugins with settings page'] = 'Auto-add plugins with settings page';
+$lang['When enabled, active plugins declaring Has Settings in their header are automatically added to the menubar if they have not registered via the hook.'] = 'When enabled, active plugins declaring "Has Settings" in their header are automatically added to the menubar if they have not registered via the hook.';
 
 
 // Leave this line empty

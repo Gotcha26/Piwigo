@@ -2817,6 +2817,83 @@ function get_active_menu($menu_page)
 }
 
 /**
+ * Collect all plugin menubar items: hook registrations + optional fallback for
+ * active plugins declaring "Has Settings" that did not register via the hook.
+ *
+ * Generates a stable ID for fallback entries:
+ *   - PEM plugin  (Plugin URI contains extension_view.php?eid=N) → fallback_eid_N
+ *   - Independent plugin                                          → fallback_{plugin_id}
+ *
+ * @return array Raw items before preferences are applied
+ */
+function get_admin_menubar_plugin_links()
+{
+  global $conf;
+
+  $items = trigger_change('admin_menubar_plugin_links', array());
+
+  if (empty($conf['admin_menubar_fallback_plugins']))
+  {
+    return $items;
+  }
+
+  // Collect IDs already registered via the hook
+  $registered_ids = array();
+  foreach ($items as $item)
+  {
+    if (isset($item['ID']))
+    {
+      $registered_ids[] = $item['ID'];
+    }
+  }
+
+  include_once(PHPWG_ROOT_PATH.'admin/include/plugins.class.php');
+  $fallback_mgr = new plugins(PHPWG_ROOT_PATH);
+
+  foreach (get_db_plugins('active') as $db_plugin)
+  {
+    $plugin_id = $db_plugin['id'];
+
+    $fs_plugin = isset($fallback_mgr->fs_plugins[$plugin_id])
+      ? $fallback_mgr->fs_plugins[$plugin_id]
+      : $fallback_mgr->get_fs_plugin($plugin_id);
+
+    if (empty($fs_plugin) or empty($fs_plugin['hasSettings']))
+    {
+      continue;
+    }
+
+    // Build a stable ID: prefer PEM eid, fallback to plugin folder name
+    if (!empty($fs_plugin['extension']) && is_numeric($fs_plugin['extension']))
+    {
+      $fallback_id = 'fallback_eid_' . $fs_plugin['extension'];
+    }
+    else
+    {
+      $fallback_id = 'fallback_' . $plugin_id;
+    }
+
+    // Skip if already registered (either via hook with same ID, or already
+    // computed as a fallback_* id — prevents duplicates on repeated calls)
+    if (in_array($fallback_id, $registered_ids) || in_array($plugin_id, $registered_ids))
+    {
+      continue;
+    }
+
+    $items[] = array(
+      'ID'     => $fallback_id,
+      'NAME'   => $fs_plugin['name'],
+      'URL'    => get_root_url().'admin.php?page=plugin-'.$plugin_id,
+      'SOURCE' => 'fallback',
+    );
+
+    $registered_ids[] = $fallback_id;
+  }
+
+  return $items;
+}
+
+/**
  * Apply user preferences (order, visibility, separators) to plugin menubar items.
  *
  * Reads from $conf['admin_menubar_order'], $conf['admin_menubar_hidden'],

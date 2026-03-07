@@ -1456,5 +1456,7 @@ $lang['Sort A to Z'] = 'Trier A à Z';
 $lang['Sort Z to A'] = 'Trier Z à A';
 $lang['Align names with icons'] = 'Aligner les noms sur les icônes';
 $lang['When enabled, a blank space is reserved for entries without an icon, keeping all names aligned.'] = 'Quand cette option est activée, un espace vide est réservé pour les entrées sans icône, afin d\'aligner tous les noms.';
+$lang['Auto-add plugins with settings page'] = 'Ajouter automatiquement les plugins avec page de configuration';
+$lang['When enabled, active plugins declaring Has Settings in their header are automatically added to the menubar if they have not registered via the hook.'] = 'Quand cette option est activée, les plugins actifs déclarant "Has Settings" dans leur en-tête sont automatiquement ajoutés au menubar s\'ils ne se sont pas enregistrés via le hook.';
 
 // Leave this line empty
