@@ -310,6 +310,14 @@ jQuery(document).ready(function() {
         <span>{'Truncate long names'|@translate}</span>
       </div>
 
+      <div style="display:flex; align-items:center; gap:12px;">
+        <label class="switch" title="{'When enabled, a blank space is reserved for entries without an icon, keeping all names aligned.'|@translate}">
+          <input type="checkbox" name="align_icons" {if $ALIGN_ICONS}checked="checked"{/if}>
+          <span class="slider round"></span>
+        </label>
+        <span>{'Align names with icons'|@translate}</span>
+      </div>
+
     </div>
   </fieldset>
 

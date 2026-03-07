@@ -1084,6 +1084,10 @@ $conf['admin_menubar_always_open'] = false;
 // When false, long names wrap to the next line instead.
 $conf['admin_menubar_truncate_names'] = true;
 
+// Reserve an empty space for plugin entries with no icon, so names align with
+// entries that have an icon. When false, the name uses the full available width.
+$conf['admin_menubar_align_icons'] = true;
+
 // +-----------------------------------------------------------------------+
 // |                                 log                                   |
 // +-----------------------------------------------------------------------+

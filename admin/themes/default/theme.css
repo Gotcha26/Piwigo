@@ -2245,6 +2245,12 @@ a.admin-main:hover {color:#fff;}
   padding-bottom: 50px;
 }
 
+#menubar-plugins dd li a .menubar-icon-placeholder {
+  display: inline-block;
+  width: 1em;
+  margin-right: 0.3em;
+}
+
 @media all and (max-height: 920px) {
   #menubar ul.scroll {
     max-height: 400px;

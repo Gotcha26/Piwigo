@@ -409,6 +409,7 @@ $plugins_menu_items = apply_admin_menubar_preferences($plugins_menu_items);
 $template->assign('PLUGINS_MENU_ITEMS', $plugins_menu_items);
 $template->assign('PLUGINS_MENU_ALWAYS_OPEN', !empty($conf['admin_menubar_always_open']));
 $template->assign('PLUGINS_MENU_TRUNCATE_NAMES', !empty($conf['admin_menubar_truncate_names']));
+$template->assign('PLUGINS_MENU_ALIGN_ICONS', !empty($conf['admin_menubar_align_icons']));
 
 // +-----------------------------------------------------------------------+
 // | Include specific page                                                 |

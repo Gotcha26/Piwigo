@@ -1447,6 +1447,8 @@ $lang['Truncate long names'] = 'Truncate long names';
 $lang['When enabled, names exceeding 23 characters are truncated with ellipsis and scroll on hover. When disabled, names wrap to the next line.'] = 'When enabled, names exceeding 23 characters are truncated with ellipsis and scroll on hover. When disabled, names wrap to the next line.';
 $lang['Sort A to Z'] = 'Sort A to Z';
 $lang['Sort Z to A'] = 'Sort Z to A';
+$lang['Align names with icons'] = 'Align names with icons';
+$lang['When enabled, a blank space is reserved for entries without an icon, keeping all names aligned.'] = 'When enabled, a blank space is reserved for entries without an icon, keeping all names aligned.';
 
 
 // Leave this line empty
