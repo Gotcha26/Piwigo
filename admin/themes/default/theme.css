@@ -2241,6 +2241,10 @@ a.admin-main:hover {color:#fff;}
   line-height: 1.3;
 }
 
+#pluginMenubarForm {
+  padding-bottom: 50px;
+}
+
 @media all and (max-height: 920px) {
   #menubar ul.scroll {
     max-height: 400px;
