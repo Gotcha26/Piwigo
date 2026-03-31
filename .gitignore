@@ -11,6 +11,7 @@
 !/galleries/index.php
 /local/*
 !/local/**/index.php
+!/local/patches/*
 
 # IntelliJ
 .idea
