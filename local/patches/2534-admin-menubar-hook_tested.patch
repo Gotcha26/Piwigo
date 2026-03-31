@@ -1,3 +1,5 @@
+# CPV - Compatible Piwigo Version: 16.3.0
+
 diff --git a/admin.php b/admin.php
 index afa343086..2c6d66fe6 100644
 --- a/admin.php

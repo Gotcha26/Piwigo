@@ -1,3 +1,5 @@
+# CPV - Compatible Piwigo Version: 16.3.0
+
 diff --git a/include/common.inc.php b/include/common.inc.php
 index 70d465d08..68f47843a 100644
 --- a/include/common.inc.php

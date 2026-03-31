@@ -122,20 +122,42 @@ ISSUE-SHORT-DESCRIPTION_variant.patch  (if multiple versions exist)
 ISSUE-SHORT-DESCRIPTION_tested.patch    (if a tested variant is available)
 ```
 
+### Patch File Header (CRITICAL)
+
+**Every patch file MUST start with a CPV (Compatible Piwigo Version) line:**
+
+```diff
+# CPV - Compatible Piwigo Version: 16.3.0
+
+diff --git a/file.php b/file.php
+...
+```
+
+The CPV line:
+- ✅ Must be the **first line** of the patch file
+- ✅ Followed by **exactly one blank line**
+- ✅ Format: `# CPV - Compatible Piwigo Version: X.Y.Z`
+- ✅ Identifies which Piwigo release this patch targets
+- ✅ Essential for patch identification and management
+
 Example:
 ```
 local/patches/
   ├── 2534-admin-menubar-hook.patch           # Primary patch
+  │   └─ starts with: # CPV - Compatible Piwigo Version: 16.3.0
   ├── 2534-admin-menubar-hook_tested.patch    # Fully tested variant
+  │   └─ starts with: # CPV - Compatible Piwigo Version: 16.3.0
   ├── 2533-sharpening-parameter.patch         # Another issue
+  │   └─ starts with: # CPV - Compatible Piwigo Version: 16.3.0
   └── README.md                               # Patch documentation
 ```
 
 Each patch must:
-- ✅ Apply cleanly to its target release tag
-- ✅ Be tested before committing
+- ✅ Start with `# CPV - Compatible Piwigo Version: X.Y.Z` (first line) + blank line
+- ✅ Apply cleanly to its target release tag when tested independently
+- ✅ Be tested before committing (on clean tag checkout)
+- ✅ Be **independent** (apply without dependencies on other patches)
 - ✅ Have a clear description in `README.md`
-- ✅ Be independent (no dependencies on other patches unless documented)
 
 ---
 
