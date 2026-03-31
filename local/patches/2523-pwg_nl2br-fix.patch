@@ -1,0 +1,68 @@
+diff --git a/include/common.inc.php b/include/common.inc.php
+index 70d465d08..68f47843a 100644
+--- a/include/common.inc.php
++++ b/include/common.inc.php
+@@ -353,10 +353,7 @@ if (isset($conf['header_notes']))
+ 
+ // default event handlers
+ add_event_handler('render_category_literal_description', 'render_category_literal_description');
+-if ( !$conf['allow_html_descriptions'] )
+-{
+-  add_event_handler('render_category_description', 'pwg_nl2br');
+-}
++add_event_handler('render_category_description', 'should_convert_nl2br');
+ add_event_handler('render_comment_content', 'render_comment_content');
+ add_event_handler('render_comment_author', 'strip_tags');
+ add_event_handler('render_tag_url', 'str2url');
+diff --git a/include/functions_html.inc.php b/include/functions_html.inc.php
+index be27f8ce6..fac94aaf0 100644
+--- a/include/functions_html.inc.php
++++ b/include/functions_html.inc.php
+@@ -656,17 +656,30 @@ function flush_page_messages()
+ }
+ 
+ /**
+- * pwg_nl2br is useful for PHP 5.2 which doesn't accept more than 1
+- * parameter on nl2br() (and anyway the second parameter of nl2br does not
+- * match what Piwigo gives.
++ * Convert newlines to <br> tags, but only if the content does not
++ * already contain HTML tags. This respects the intent: if a user writes
++ * plain text with paragraphs (newlines), they should be preserved in
++ * the output. If they explicitly use HTML, we don't add extra <br>.
++ *
++ * @param string $string
++ * @return string
+  */
+-function pwg_nl2br($string)
++function should_convert_nl2br($string)
+ {
+   if (empty($string))
+   {
+     return $string;
+   }
+ 
++  // Check if content already contains HTML tags
++  // Match opening tags like <p>, <br>, <div>, etc.
++  if (preg_match('/<[a-z][\w-]*(?:\s[^>]*)?>/i', $string))
++  {
++    // Content has HTML, don't add <br>
++    return $string;
++  }
++
++  // No HTML detected, convert newlines to <br>
+   return nl2br($string);
+ }
+ 
+diff --git a/picture.php b/picture.php
+index 067ee6d48..7db457441 100644
+--- a/picture.php
++++ b/picture.php
+@@ -124,7 +124,7 @@ if ( isset($_GET['metadata']) )
+ // add default event handler for rendering element content
+ add_event_handler('render_element_content', 'default_picture_content');
+ // add default event handler for rendering element description
+-add_event_handler('render_element_description', 'pwg_nl2br');
++add_event_handler('render_element_description', 'should_convert_nl2br');
+ 
+ trigger_notify('loc_begin_picture');
+ 
