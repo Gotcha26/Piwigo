@@ -203,7 +203,41 @@ mv local/patches/0001-*.patch local/patches/2534-admin-menubar-hook.patch
 **Patch file naming**:
 - Primary: `{ISSUE}-{description}.patch`
 - Variant: `{ISSUE}-{description}_{variant}.patch`
-- Tested: `{ISSUE}-{description}_tested.patch`
+- Tested: `{ISSUE}-{description}_tested.patch` (rename to primary when tested)
+- Archive: `{ISSUE}-{description}.patch.old` (keep old version as reference)
+
+### ⚠️ CRITICAL: Add CPV Header to Patch Files
+
+Every patch file MUST start with a CPV (Compatible Piwigo Version) header:
+
+```bash
+# Edit your generated patch file
+nano local/patches/2534-admin-menubar-hook.patch
+
+# Add these two lines at the VERY BEGINNING:
+# CPV - Compatible Piwigo Version: 16.3.0
+# (blank line)
+
+# Rest of patch follows (starting with "diff --git...")
+```
+
+**Result format**:
+```diff
+# CPV - Compatible Piwigo Version: 16.3.0
+
+diff --git a/admin.php b/admin.php
+index afa343086..2c6d66fe6 100644
+--- a/admin.php
++++ b/admin.php
+...
+```
+
+**Why CPV is required**:
+- ✅ Identifies target Piwigo release immediately
+- ✅ Ensures patches are applied to correct versions
+- ✅ Essential for patch management and documentation
+- ✅ Prevents accidental application to wrong releases
+- ✅ Required first line in all patch files
 
 ---
 

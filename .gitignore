@@ -22,3 +22,6 @@
 # Eclipse
 .settings
 .project
+
+# Claude Code local
+.claude/
