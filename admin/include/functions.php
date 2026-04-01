@@ -2837,13 +2837,18 @@ function get_admin_menubar_plugin_links()
     return $items;
   }
 
-  // Collect IDs already registered via the hook
+  // Collect IDs and plugin dirs already registered via the hook
   $registered_ids = array();
+  $registered_dirs = array();
   foreach ($items as $item)
   {
     if (isset($item['ID']))
     {
       $registered_ids[] = $item['ID'];
+    }
+    if (isset($item['PLUGIN_DIR']))
+    {
+      $registered_dirs[] = $item['PLUGIN_DIR'];
     }
   }
 
@@ -2873,9 +2878,10 @@ function get_admin_menubar_plugin_links()
       $fallback_id = 'fallback_' . $plugin_id;
     }
 
-    // Skip if already registered (either via hook with same ID, or already
-    // computed as a fallback_* id — prevents duplicates on repeated calls)
-    if (in_array($fallback_id, $registered_ids) || in_array($plugin_id, $registered_ids))
+    // Skip if already registered via hook (by ID, PLUGIN_DIR, or fallback ID)
+    if (in_array($fallback_id, $registered_ids)
+      || in_array($plugin_id, $registered_ids)
+      || in_array($plugin_id, $registered_dirs))
     {
       continue;
     }

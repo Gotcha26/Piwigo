@@ -166,7 +166,7 @@ jQuery(document).ready(function() {
     </dt>
     {if $PLUGINS_MENU_ITEMS|@count > 0}
     <dd>
-      <ul>
+      <ul class="scroll">
         {foreach from=$PLUGINS_MENU_ITEMS item=item}
         {if isset($item.TYPE) && $item.TYPE == 'separator'}
         <li class="menubar-separator"><hr></li>
