@@ -11,7 +11,6 @@
 !/galleries/index.php
 /local/*
 !/local/**/index.php
-!/local/patches/*
 
 # IntelliJ
 .idea
@@ -22,6 +21,3 @@
 # Eclipse
 .settings
 .project
-
-# Claude Code local
-.claude/
