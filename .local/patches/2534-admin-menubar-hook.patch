@@ -1,0 +1,1232 @@
+# CPV - Compatible Piwigo Version: 16.3.0
+
+diff --git a/admin.php b/admin.php
+index afa343086..2c6d66fe6 100644
+--- a/admin.php
++++ b/admin.php
+@@ -226,6 +226,7 @@ $template->assign(
+     'U_ADMIN'=> PHPWG_ROOT_PATH.'admin.php',
+     'U_LOGOUT'=> PHPWG_ROOT_PATH.'index.php?act=logout',
+     'U_PLUGINS'=> $link_start.'plugins',
++    'U_PLUGINS_MENUBAR'=> $link_start.'plugins&amp;tab=menubar',
+     'U_ADD_PHOTOS' => $link_start.'photos_add',
+     'U_CHANGE_THEME' => $change_theme_url,
+     'ADMIN_PAGE_TITLE' => 'Piwigo Administration Page',
+@@ -399,6 +400,17 @@ $template->assign(
+   )
+ );
+ 
++// +-----------------------------------------------------------------------+
++// | Plugin menubar links                                                  |
++// +-----------------------------------------------------------------------+
++
++$plugins_menu_items = get_admin_menubar_plugin_links();
++$plugins_menu_items = apply_admin_menubar_preferences($plugins_menu_items);
++$template->assign('PLUGINS_MENU_ITEMS', $plugins_menu_items);
++$template->assign('PLUGINS_MENU_ALWAYS_OPEN', !empty($conf['admin_menubar_always_open']));
++$template->assign('PLUGINS_MENU_TRUNCATE_NAMES', !empty($conf['admin_menubar_truncate_names']));
++$template->assign('PLUGINS_MENU_ALIGN_ICONS', !empty($conf['admin_menubar_align_icons']));
++
+ // +-----------------------------------------------------------------------+
+ // | Include specific page                                                 |
+ // +-----------------------------------------------------------------------+
+diff --git a/admin/include/add_core_tabs.inc.php b/admin/include/add_core_tabs.inc.php
+index 11a2788cc..a11f667ec 100644
+--- a/admin/include/add_core_tabs.inc.php
++++ b/admin/include/add_core_tabs.inc.php
+@@ -147,6 +147,7 @@ function add_core_tabs($sheets, $tab_id)
+         $sheets['update'] = array('caption' => '<span class="icon-arrows-cw"></span>'.l10n('Check for updates'), 'url' => $my_base_url.'&amp;tab=update');
+         $sheets['new'] = array('caption' => '<span class="icon-plus-circled"></span>'.l10n('Add New Plugin'), 'url' => $my_base_url.'&amp;tab=new');
+       }
++      $sheets['menubar'] = array('caption' => '<span class="icon-puzzle"></span>'.l10n('Plugin Menubar'), 'url' => $my_base_url.'&amp;tab=menubar');
+       break;
+ 
+     case 'rating':
+diff --git a/admin/include/functions.php b/admin/include/functions.php
+index c5a26ebca..15976ef62 100644
+--- a/admin/include/functions.php
++++ b/admin/include/functions.php
+@@ -2753,13 +2753,18 @@ function get_old_newsletters_base_url($language='en_UK')
+  */
+ function get_active_menu($menu_page)
+ {
+-  global $page;
++  global $page, $template;
+ 
+   if (isset($page['active_menu']))
+   {
+     return $page['active_menu'];
+   }
+ 
++  // When plugins register menubar items, the Plugins section gains a <dd>
++  // and becomes an accordion group, shifting Tools and Configuration by +1.
++  $plugins_menu_items = $template->get_template_vars('PLUGINS_MENU_ITEMS');
++  $plugins_offset = (!empty($plugins_menu_items)) ? 1 : 0;
++
+   switch ($menu_page)
+   {
+     case 'photo':
+@@ -2785,6 +2790,9 @@ function get_active_menu($menu_page)
+     case 'user_activity';
+       return 2;
+ 
++    case 'plugins':
++      return ($plugins_offset > 0) ? 3 : -1;
++
+     case 'site_manager':
+     case 'site_update':
+     case 'stats':
+@@ -2792,7 +2800,7 @@ function get_active_menu($menu_page)
+     case 'maintenance':
+     case 'comments':
+     case 'updates':
+-      return 3;
++      return 3 + $plugins_offset;
+ 
+     case 'configuration':
+     case 'derivatives':
+@@ -2801,13 +2809,188 @@ function get_active_menu($menu_page)
+     case 'themes':
+     case 'theme':
+     case 'languages':
+-      return 4;
++      return 4 + $plugins_offset;
+ 
+     default:
+       return -1;
+   }
+ }
+ 
++/**
++ * Collect all plugin menubar items: hook registrations + optional fallback for
++ * active plugins declaring "Has Settings" that did not register via the hook.
++ *
++ * Generates a stable ID for fallback entries:
++ *   - PEM plugin  (Plugin URI contains extension_view.php?eid=N) → fallback_eid_N
++ *   - Independent plugin                                          → fallback_{plugin_id}
++ *
++ * @return array Raw items before preferences are applied
++ */
++function get_admin_menubar_plugin_links()
++{
++  global $conf;
++
++  $items = trigger_change('admin_menubar_plugin_links', array());
++
++  if (empty($conf['admin_menubar_fallback_plugins']))
++  {
++    return $items;
++  }
++
++  // Collect IDs already registered via the hook
++  $registered_ids = array();
++  foreach ($items as $item)
++  {
++    if (isset($item['ID']))
++    {
++      $registered_ids[] = $item['ID'];
++    }
++  }
++
++  include_once(PHPWG_ROOT_PATH.'admin/include/plugins.class.php');
++  $fallback_mgr = new plugins(PHPWG_ROOT_PATH);
++
++  foreach (get_db_plugins('active') as $db_plugin)
++  {
++    $plugin_id = $db_plugin['id'];
++
++    $fs_plugin = isset($fallback_mgr->fs_plugins[$plugin_id])
++      ? $fallback_mgr->fs_plugins[$plugin_id]
++      : $fallback_mgr->get_fs_plugin($plugin_id);
++
++    if (empty($fs_plugin) or empty($fs_plugin['hasSettings']))
++    {
++      continue;
++    }
++
++    // Build a stable ID: prefer PEM eid, fallback to plugin folder name
++    if (!empty($fs_plugin['extension']) && is_numeric($fs_plugin['extension']))
++    {
++      $fallback_id = 'fallback_eid_' . $fs_plugin['extension'];
++    }
++    else
++    {
++      $fallback_id = 'fallback_' . $plugin_id;
++    }
++
++    // Skip if already registered (either via hook with same ID, or already
++    // computed as a fallback_* id — prevents duplicates on repeated calls)
++    if (in_array($fallback_id, $registered_ids) || in_array($plugin_id, $registered_ids))
++    {
++      continue;
++    }
++
++    $items[] = array(
++      'ID'     => $fallback_id,
++      'NAME'   => $fs_plugin['name'],
++      'URL'    => get_root_url().'admin.php?page=plugin-'.$plugin_id,
++      'SOURCE' => 'fallback',
++    );
++
++    $registered_ids[] = $fallback_id;
++  }
++
++  return $items;
++}
++
++/**
++ * Apply user preferences (order, visibility, separators) to plugin menubar items.
++ *
++ * Reads from $conf['admin_menubar_order'], $conf['admin_menubar_hidden'],
++ * and $conf['admin_menubar_separators'] to filter and sort the items array.
++ *
++ * @param array $items Plugin menu items from the hook
++ * @return array Filtered and sorted items
++ */
++function apply_admin_menubar_preferences($items)
++{
++  global $conf;
++
++  if (empty($items))
++  {
++    return $items;
++  }
++
++  // Ensure each item has an ID
++  foreach ($items as $idx => &$item)
++  {
++    if (!isset($item['ID']))
++    {
++      $item['ID'] = 'plugin_' . $idx;
++    }
++  }
++  unset($item);
++
++  // Remove hidden items
++  $hidden = $conf['admin_menubar_hidden'];
++  if (is_string($hidden))
++  {
++    $hidden = unserialize($hidden);
++  }
++  if (!is_array($hidden))
++  {
++    $hidden = array();
++  }
++
++  if (!empty($hidden))
++  {
++    $items = array_filter($items, function($item) use ($hidden) {
++      return !in_array($item['ID'], $hidden);
++    });
++    $items = array_values($items);
++  }
++
++  // Apply custom order
++  $order = $conf['admin_menubar_order'];
++  if (is_string($order))
++  {
++    $order = unserialize($order);
++  }
++  if (!is_array($order))
++  {
++    $order = array();
++  }
++
++  if (!empty($order))
++  {
++    // Index items by ID
++    $indexed = array();
++    foreach ($items as $item)
++    {
++      $indexed[$item['ID']] = $item;
++    }
++
++    $sorted = array();
++
++    // Add items in configured order, inserting separators
++    foreach ($order as $id)
++    {
++      if (isset($indexed[$id]))
++      {
++        $sorted[] = $indexed[$id];
++        unset($indexed[$id]);
++      }
++      elseif (strpos($id, 'separator_') === 0)
++      {
++        $sorted[] = array(
++          'ID' => $id,
++          'TYPE' => 'separator',
++        );
++      }
++    }
++
++    // Append any remaining items not in the order list
++    foreach ($indexed as $item)
++    {
++      $sorted[] = $item;
++    }
++
++    $items = $sorted;
++  }
++
++  return $items;
++}
++
+ /**
+  * Get tags list from SQL query (ids are surrounded by ~~, for get_tag_ids()).
+  *
+diff --git a/admin/plugins_menubar.php b/admin/plugins_menubar.php
+new file mode 100644
+index 000000000..a54e6a9f4
+--- /dev/null
++++ b/admin/plugins_menubar.php
+@@ -0,0 +1,181 @@
++<?php
++// +-----------------------------------------------------------------------+
++// | This file is part of Piwigo.                                          |
++// |                                                                       |
++// | For copyright and license information, please view the COPYING.txt    |
++// | file that was distributed with this source code.                      |
++// +-----------------------------------------------------------------------+
++
++if (!defined('PHPWG_ROOT_PATH'))
++{
++  die ("Hacking attempt!");
++}
++
++if (!is_webmaster())
++{
++  $page['warnings'][] = str_replace('%s', l10n('user_status_webmaster'), l10n('%s status is required to edit parameters.'));
++}
++
++// Collect plugin menubar items (hook + fallback for plugins with Has Settings)
++$plugins_menu_items = get_admin_menubar_plugin_links();
++
++// Ensure each item has an ID (safety net for hook items without ID)
++foreach ($plugins_menu_items as $idx => &$item)
++{
++  if (!isset($item['ID']))
++  {
++    $item['ID'] = 'plugin_' . $idx;
++  }
++}
++unset($item);
++
++// Load current preferences
++$menubar_order = $conf['admin_menubar_order'];
++if (is_string($menubar_order))
++{
++  $menubar_order = unserialize($menubar_order);
++}
++if (!is_array($menubar_order))
++{
++  $menubar_order = array();
++}
++
++$menubar_hidden = $conf['admin_menubar_hidden'];
++if (is_string($menubar_hidden))
++{
++  $menubar_hidden = unserialize($menubar_hidden);
++}
++if (!is_array($menubar_hidden))
++{
++  $menubar_hidden = array();
++}
++
++$menubar_separators = $conf['admin_menubar_separators'];
++if (is_string($menubar_separators))
++{
++  $menubar_separators = unserialize($menubar_separators);
++}
++if (!is_array($menubar_separators))
++{
++  $menubar_separators = array();
++}
++
++// +-----------------------------------------------------------------------+
++// | Process form submission                                               |
++// +-----------------------------------------------------------------------+
++
++if (isset($_POST['submit']) and is_webmaster())
++{
++  // Read order from hidden input (comma-separated IDs)
++  $new_order = array();
++  if (!empty($_POST['menubar_items_order']))
++  {
++    $new_order = explode(',', $_POST['menubar_items_order']);
++    $new_order = array_map('trim', $new_order);
++    // Validate IDs: alphanumeric + underscore only
++    $new_order = array_filter($new_order, function($id) {
++      return preg_match('/^[a-zA-Z0-9_]+$/', $id);
++    });
++    $new_order = array_values($new_order);
++  }
++
++  // Read hidden items
++  $new_hidden = array();
++  foreach ($plugins_menu_items as $item)
++  {
++    if (isset($_POST['hide_' . $item['ID']]))
++    {
++      $new_hidden[] = $item['ID'];
++    }
++  }
++
++  // Read separators
++  $new_separators = array();
++  foreach ($new_order as $id)
++  {
++    if (strpos($id, 'separator_') === 0)
++    {
++      $new_separators[$id] = array();
++    }
++  }
++
++  // Save to config
++  conf_update_param('admin_menubar_order', $new_order, true);
++  conf_update_param('admin_menubar_hidden', $new_hidden, true);
++  conf_update_param('admin_menubar_separators', $new_separators, true);
++  conf_update_param('admin_menubar_always_open', !empty($_POST['always_open']));
++  conf_update_param('admin_menubar_truncate_names', !empty($_POST['truncate_names']));
++  conf_update_param('admin_menubar_align_icons', !empty($_POST['align_icons']));
++  conf_update_param('admin_menubar_fallback_plugins', !empty($_POST['fallback_plugins']));
++
++  // Redirect to GET to avoid browser "resend form" dialog
++  redirect(get_root_url().'admin.php?page=plugins&tab=menubar&saved=1');
++}
++
++// +-----------------------------------------------------------------------+
++// | Build the display list                                                |
++// +-----------------------------------------------------------------------+
++
++// Build sorted list: ordered items first, then unordered
++$display_items = array();
++$indexed_items = array();
++
++foreach ($plugins_menu_items as $item)
++{
++  $indexed_items[$item['ID']] = $item;
++}
++
++if (!empty($menubar_order))
++{
++  foreach ($menubar_order as $id)
++  {
++    if (isset($indexed_items[$id]))
++    {
++      $entry = $indexed_items[$id];
++      $entry['HIDDEN'] = in_array($id, $menubar_hidden);
++      $display_items[] = $entry;
++      unset($indexed_items[$id]);
++    }
++    elseif (strpos($id, 'separator_') === 0)
++    {
++      $display_items[] = array(
++        'ID' => $id,
++        'TYPE' => 'separator',
++        'HIDDEN' => false,
++      );
++    }
++  }
++}
++
++// Append remaining items not in order
++foreach ($indexed_items as $item)
++{
++  $item['HIDDEN'] = in_array($item['ID'], $menubar_hidden);
++  $display_items[] = $item;
++}
++
++// +-----------------------------------------------------------------------+
++// | Template                                                              |
++// +-----------------------------------------------------------------------+
++
++$template->assign(array(
++  'DISPLAY_ITEMS' => $display_items,
++  'HAS_ITEMS' => count($plugins_menu_items) > 0,
++  'F_ACTION' => get_root_url() . 'admin.php?page=plugins&amp;tab=menubar',
++  'isWebmaster' => (is_webmaster()) ? 1 : 0,
++  'ALWAYS_OPEN' => !empty($conf['admin_menubar_always_open']),
++  'TRUNCATE_NAMES' => !empty($conf['admin_menubar_truncate_names']),
++  'ALIGN_ICONS' => !empty($conf['admin_menubar_align_icons']),
++  'FALLBACK_PLUGINS' => !empty($conf['admin_menubar_fallback_plugins']),
++));
++
++if (!empty($_GET['saved']))
++{
++  $template->assign('save_success', l10n('Order of menubar items has been updated successfully.'));
++}
++
++$template->assign('ADMIN_PAGE_TITLE', l10n('Plugins') . ' &rsaquo; ' . l10n('Plugin Menubar'));
++
++$template->set_filename('plugins_menubar', 'plugins_menubar.tpl');
++$template->assign_var_from_handle('ADMIN_CONTENT', 'plugins_menubar');
++?>
+diff --git a/admin/themes/default/template/admin.tpl b/admin/themes/default/template/admin.tpl
+index d6db48497..eea349a80 100644
+--- a/admin/themes/default/template/admin.tpl
++++ b/admin/themes/default/template/admin.tpl
+@@ -5,19 +5,61 @@ jQuery.fn.lightAccordion = function(options) {
+     content: 'dd',
+     active: 0
+   }, options);
+-  
++
+   return this.each(function() {
+     var self = jQuery(this);
+-    
++
+     var contents = self.find(settings.content),
+         headers = self.find(settings.header);
+-    
++
++    // Mark initially active dl as open
++    var activeDl = headers.eq(settings.active).closest('dl');
++    activeDl.addClass('is-open');
+     contents.not(contents[settings.active]).hide();
+-  
+-    self.on('click', settings.header, function() {
++
++    // If plugins submenu is pinned open, force it open regardless of active index
++    {if $PLUGINS_MENU_ALWAYS_OPEN}
++    var pluginsDl = jQuery('#menubar-plugins');
++    pluginsDl.find('dd').show();
++    pluginsDl.addClass('is-open');
++    {/if}
++
++    // Ensure no other dl has is-open except the active one (and pinned Plugins if applicable)
++    headers.closest('dl').each(function(i) {
++      var dl = jQuery(this);
++      if (i !== settings.active) {
++        {if !$PLUGINS_MENU_ALWAYS_OPEN}
++          dl.removeClass('is-open');
++        {else}
++          if (!dl.is('#menubar-plugins')) {
++            dl.removeClass('is-open');
++          }
++        {/if}
++      }
++    });
++
++    self.on('click', settings.header, function(e) {
++        if (jQuery(e.target).closest('.dt-label').length) {
++          return; // let the link navigate normally
++        }
++        var dl = jQuery(this).closest('dl');
+         var content = jQuery(this).next(settings.content);
+-        content.slideDown();
+-        contents.not(content).slideUp();
++        if (content.is(':visible')) {
++          content.slideUp();
++          dl.removeClass('is-open');
++        } else {
++          content.slideDown();
++          dl.addClass('is-open');
++          // Close others (but not pinned-open plugins submenu)
++          contents.not(content).each(function() {
++            var otherDl = jQuery(this).closest('dl');
++            {if $PLUGINS_MENU_ALWAYS_OPEN}
++            if (otherDl.is('#menubar-plugins')) { return; }
++            {/if}
++            jQuery(this).slideUp();
++            otherDl.removeClass('is-open');
++          });
++        }
+     });
+   });
+ };
+@@ -26,6 +68,29 @@ $('#menubar').lightAccordion({
+   active: {$ACTIVE_MENU}
+ });
+ 
++// Plugin menubar name display mode
++jQuery(document).ready(function() {
++  jQuery('#menubar-plugins dd li a').each(function() {
++    var $a = jQuery(this);
++    // Wrap text node in .menubar-name (the scrolling element)
++    $a.contents().filter(function() { return this.nodeType === 3; }).wrap('<span class="menubar-name"></span>');
++    var $name = $a.find('.menubar-name');
++    // Wrap .menubar-name in .menubar-name-clip (the clipping container)
++    $name.wrap('<span class="menubar-name-clip"></span>');
++    {if $PLUGINS_MENU_TRUNCATE_NAMES}
++    // Measure actual text width (temporarily unconstrained)
++    var fullWidth = $name[0].scrollWidth;
++    if (fullWidth > 154) {
++      $name.addClass('name-overflow');
++      var scrollDist = fullWidth - 154;
++      $a[0].style.setProperty('--scroll-dist', '-' + scrollDist + 'px');
++      // 40px per second, min 1.5s
++      $a[0].style.setProperty('--scroll-duration', Math.max(1.5, scrollDist / 40) + 's');
++    }
++    {/if}
++  });
++});
++
+ /* in case we have several infos/errors/warnings display bullets */
+ jQuery(document).ready(function() {
+   var eiw = ["infos","erros","warnings", "messages"];
+@@ -87,8 +152,31 @@ jQuery(document).ready(function() {
+       </ul>
+ 		</dd>
+   </dl>
+-  <dl>
+-		<dt><a href="{$U_PLUGINS}" class="admin-main"><i class="icon-puzzle"> </i><span>{'Plugins'|@translate}&nbsp;</span></a></dt>
++  <dl id="menubar-plugins">
++    <dt>
++    {if $PLUGINS_MENU_ITEMS|@count > 0}
++      <a href="{$U_PLUGINS}" class="admin-main dt-label"><i class="icon-puzzle"> </i><span>{'Plugins'|@translate}&nbsp;</span></a>
++      <i class="icon-down-open open-menu"></i>
++    {else}
++      <a href="{$U_PLUGINS}" class="admin-main">
++        <i class="icon-puzzle"> </i>
++        <span>{'Plugins'|@translate}&nbsp;</span>
++      </a>
++    {/if}
++    </dt>
++    {if $PLUGINS_MENU_ITEMS|@count > 0}
++    <dd>
++      <ul>
++        {foreach from=$PLUGINS_MENU_ITEMS item=item}
++        {if isset($item.TYPE) && $item.TYPE == 'separator'}
++        <li class="menubar-separator"><hr></li>
++        {else}
++        <li><a href="{$item.URL}">{if isset($item.ICON) && $item.ICON != ''}<i class="{$item.ICON}"></i>{elseif $PLUGINS_MENU_ALIGN_ICONS}<i class="menubar-icon-placeholder"></i>{/if}{$item.NAME}</a></li>
++        {/if}
++        {/foreach}
++      </ul>
++    </dd>
++    {/if}
+   </dl>
+   <dl>
+ 		<dt><i class="icon-wrench"> </i><span>{'Tools'|@translate}&nbsp;</span><i class="icon-down-open open-menu"></i></dt>
+diff --git a/admin/themes/default/template/plugins_menubar.tpl b/admin/themes/default/template/plugins_menubar.tpl
+new file mode 100644
+index 000000000..3b113aec6
+--- /dev/null
++++ b/admin/themes/default/template/plugins_menubar.tpl
+@@ -0,0 +1,348 @@
++{combine_script id='jquery.sort' load='footer' path='themes/default/js/plugins/jquery.sort.js'}
++{combine_script id='common' load='footer' path='admin/themes/default/js/common.js'}
++{combine_script id='jquery.jgrowl' load='footer' require='jquery' path='themes/default/js/plugins/jquery.jgrowl_minimized.js'}
++{combine_css path="themes/default/js/plugins/jquery.jgrowl.css"}
++
++{footer_script require='jquery.ui.sortable,jquery.jgrowl,jquery.sort'}
++var dragIconSrc = '{$themeconf.admin_icon_dir}/cat_move.png';
++var successHead = '{'Update Complete'|@translate|@escape:'javascript'}';
++var strSortAtoZ = '{'Sort A to Z'|@translate|@escape:'javascript'}';
++var strSortZtoA = '{'Sort Z to A'|@translate|@escape:'javascript'}';
++{if isset($save_success)}
++var jGrowlSuccessMsg = '{$save_success|escape:'javascript'}';
++{/if}
++{literal}
++jQuery(document).ready(function() {
++  jQuery(".pluginMenuLi").css("cursor", "move");
++
++  jQuery(".pluginMenuUl").sortable({
++    axis: "y",
++    opacity: 0.8,
++    handle: ".drag_button",
++    placeholder: "ui-state-highlight",
++    update: function() {
++      updateOrder();
++    }
++  });
++
++  jQuery("input[name^='hide_']").click(function() {
++    var id = this.name.replace('hide_', '');
++    if (this.checked) {
++      jQuery("#menu_" + id).addClass('menuLi_hidden');
++    } else {
++      jQuery("#menu_" + id).removeClass('menuLi_hidden');
++    }
++  });
++
++  jQuery("#addSeparator").click(function(e) {
++    e.preventDefault();
++    var sepId = 'separator_' + Date.now();
++    var html = '<li class="pluginMenuLi pluginMenuSeparator" id="menu_' + sepId + '">'
++      + '<p>'
++      + '<img src="' + dragIconSrc + '" class="drag_button" alt="Drag to re-order" title="Drag to re-order">'
++      + '<span class="separator-line"><hr></span>'
++      + '<a href="#" class="removeSeparator" title="Remove separator"><i class="icon-cancel"></i></a>'
++      + '</p>'
++      + '</li>';
++    jQuery(".pluginMenuUl").append(html);
++    jQuery(".pluginMenuUl").sortable("refresh");
++    updateOrder();
++  });
++
++  jQuery(document).on("click", ".removeSeparator", function(e) {
++    e.preventDefault();
++    jQuery(this).closest("li").remove();
++    updateOrder();
++  });
++
++  jQuery("#pluginMenubarForm").submit(function() {
++    updateOrder();
++  });
++
++  // Search filter
++  jQuery('#menubar-search').on('input', function() {
++    var term = this.value.toUpperCase();
++    jQuery('.pluginMenuLi:not(.pluginMenuSeparator)').each(function() {
++      var name = jQuery(this).find('strong').text().toUpperCase();
++      jQuery(this).toggle(term === '' || name.indexOf(term) !== -1);
++    });
++    jQuery('.search-cancel').toggle(term !== '');
++  });
++
++  jQuery('.search-cancel').on('click', function() {
++    jQuery('#menubar-search').val('').trigger('input');
++  });
++
++  // Sort A→Z / Z→A toggle
++  var sortAscending = true;
++  jQuery('#menubar-sort-az').on('click', function(e) {
++    e.preventDefault();
++    var $btn = jQuery(this);
++    jQuery('.pluginMenuUl li.pluginMenuLi:not(.pluginMenuSeparator)').sortElements(function(a, b) {
++      var comparison = jQuery(a).find('strong').text() > jQuery(b).find('strong').text() ? 1 : -1;
++      return sortAscending ? comparison : -comparison;
++    });
++    sortAscending = !sortAscending;
++    // Update button label and icon
++    if (sortAscending) {
++      $btn.find('i').removeClass('sort-desc');
++      $btn.find('.sort-label').text(strSortAtoZ);
++    } else {
++      $btn.find('i').addClass('sort-desc');
++      $btn.find('.sort-label').text(strSortZtoA);
++    }
++    updateOrder();
++  });
++
++  function updateOrder() {
++    var ids = [];
++    jQuery(".pluginMenuUl").find("li.pluginMenuLi").each(function() {
++      var id = this.id.replace('menu_', '');
++      ids.push(id);
++    });
++    jQuery("#menubar_items_order").val(ids.join(','));
++  }
++
++  if (typeof jGrowlSuccessMsg !== 'undefined') {
++    jQuery.jGrowl(jGrowlSuccessMsg, { theme: 'success', header: successHead, life: 4000, sticky: false });
++  }
++
++  const targetNode = document.getElementById("theAdminPage");
++  const observer = new MutationObserver(function(mutationList) {
++    for (const mutation of mutationList) {
++      if (mutation.type === "childList") {
++        let popup = jQuery("#jGrowl").children();
++        for (let i = 0; i < popup.length; i++) {
++          if ((jQuery(popup[i])).hasClass("success")) {
++            if (!((jQuery(popup[i]).children(":first")).hasClass("jGrowl-popup-icon icon-ok"))) {
++              jQuery(popup[i]).prepend('<div class="jGrowl-popup-icon icon-ok"></div>');
++            }
++          }
++        }
++      }
++    }
++  });
++  if (targetNode) {
++    observer.observe(targetNode, { attributes: false, childList: true, subtree: true });
++  }
++});
++{/literal}{/footer_script}
++
++{html_style}{literal}
++.pluginMenuUl {
++  list-style: none;
++  margin: 0;
++  padding: 0;
++}
++
++.pluginMenuLi {
++  background: #f5f5f5;
++  border: 1px solid #ddd;
++  margin: 2px 0;
++  padding: 8px 12px;
++  border-radius: 3px;
++}
++
++.pluginMenuLi p {
++  margin: 0;
++  display: flex;
++  align-items: center;
++  gap: 10px;
++}
++
++.pluginMenuLi .drag_button {
++  cursor: move;
++  opacity: 0.6;
++}
++
++.pluginMenuLi .drag_button:hover {
++  opacity: 1;
++}
++
++.pluginMenuLi_hidden,
++.menuLi_hidden {
++  opacity: 0.4;
++}
++
++.pluginMenuLi strong {
++  flex: 1;
++}
++
++.pluginMenuLi span {
++  margin-left: auto;
++  flex-shrink: 0;
++}
++
++.pluginMenuLi i[class^="icon-"] {
++  font-size: 16px;
++  margin-right: 5px;
++}
++
++.pluginMenuSeparator .separator-line {
++  flex: 1;
++}
++
++.pluginMenuSeparator .separator-line hr {
++  margin: 0;
++  border: none;
++  border-top: 1px dashed #999;
++}
++
++.removeSeparator {
++  color: #c00;
++}
++
++.removeSeparator:hover {
++  color: #f00;
++}
++
++.ui-state-highlight {
++  height: 36px;
++  border: 2px solid green;
++  background: #ffc;
++  margin: 2px 0;
++}
++
++.no-items-notice {
++  padding: 20px;
++  text-align: center;
++  color: #666;
++  font-style: italic;
++}
++
++.no-items-notice i {
++  font-size: 48px;
++  display: block;
++  margin-bottom: 10px;
++  color: #ccc;
++}
++
++#addSeparator {
++  margin: 10px 0;
++  display: inline-block;
++}
++
++#menubar-sort-az i {
++  display: inline-block;
++  transition: transform 0.2s ease;
++}
++
++#menubar-sort-az i.sort-desc {
++  transform: scaleY(-1);
++}
++
++
++{/literal}{/html_style}
++
++{if $HAS_ITEMS}
++<form id="pluginMenubarForm" action="{$F_ACTION}" method="post">
++
++  <input type="hidden" name="menubar_items_order" id="menubar_items_order" value="">
++
++  <div class="titrePage">
++    <div class="sort">
++      <div class="sort-actions">
++        <a href="#" id="menubar-sort-az" class="buttonLike" title="{'Sort A to Z'|@translate}"><i class="icon-sort-name-up"></i> <span class="sort-label">{'Sort A to Z'|@translate}</span></a>
++        <div id="search-plugin">
++          <span class="icon-search search-icon"> </span>
++          <span class="icon-cancel search-cancel"></span>
++          <input class="search-input" type="text" placeholder="{'Search'|@translate}" id="menubar-search">
++        </div>
++      </div>
++    </div>
++  </div>
++
++  <fieldset>
++    <legend><i class="icon-puzzle"></i> {'Plugin Menubar'|@translate} &mdash; {'Manage entries'|@translate}</legend>
++
++    <p>
++      <a href="#" id="addSeparator"><i class="icon-plus-circled"></i> {'Add a separator'|@translate}</a>
++    </p>
++
++    <ul class="pluginMenuUl">
++      {foreach from=$DISPLAY_ITEMS item=item}
++      {if isset($item.TYPE) && $item.TYPE == 'separator'}
++      <li class="pluginMenuLi pluginMenuSeparator" id="menu_{$item.ID}">
++        <p>
++          <img src="{$themeconf.admin_icon_dir}/cat_move.png" class="drag_button" alt="{'Drag to re-order'|@translate}" title="{'Drag to re-order'|@translate}">
++          <span class="separator-line"><hr></span>
++          <a href="#" class="removeSeparator" title="{'Remove separator'|@translate}"><i class="icon-cancel"></i></a>
++        </p>
++      </li>
++      {else}
++      <li class="pluginMenuLi {if $item.HIDDEN}menuLi_hidden{/if}" id="menu_{$item.ID}">
++        <p>
++          <img src="{$themeconf.admin_icon_dir}/cat_move.png" class="drag_button" alt="{'Drag to re-order'|@translate}" title="{'Drag to re-order'|@translate}">
++          <i class="{$item.ICON|default:'icon-puzzle'}"></i>
++          <strong>{$item.NAME}</strong>
++          <span>
++            <label class="font-checkbox">
++              <span class="icon-check"></span>
++              <input type="checkbox" name="hide_{$item.ID}" {if $item.HIDDEN}checked="checked"{/if}>
++              {'Hide'|@translate}
++            </label>
++          </span>
++        </p>
++      </li>
++      {/if}
++      {/foreach}
++    </ul>
++  </fieldset>
++
++  <fieldset>
++    <legend><i class="icon-cog"></i> {'Menubar settings'|@translate}</legend>
++
++    <div style="display:flex; flex-direction:column; gap:12px; padding:8px 0;">
++
++      <div style="display:flex; align-items:center; gap:12px;">
++        <label class="switch" title="{'When enabled, the plugin list stays open in the sidebar regardless of which section is active.'|@translate}">
++          <input type="checkbox" name="always_open" {if $ALWAYS_OPEN}checked="checked"{/if}>
++          <span class="slider round"></span>
++        </label>
++        <span>{'Keep plugin submenu always expanded'|@translate}</span>
++      </div>
++
++      <div style="display:flex; align-items:center; gap:12px;">
++        <label class="switch" title="{'When enabled, names exceeding 23 characters are truncated with ellipsis and scroll on hover. When disabled, names wrap to the next line.'|@translate}">
++          <input type="checkbox" name="truncate_names" id="truncate_names" {if $TRUNCATE_NAMES}checked="checked"{/if}>
++          <span class="slider round"></span>
++        </label>
++        <span>{'Truncate long names'|@translate}</span>
++      </div>
++
++      <div style="display:flex; align-items:center; gap:12px;">
++        <label class="switch" title="{'When enabled, a blank space is reserved for entries without an icon, keeping all names aligned.'|@translate}">
++          <input type="checkbox" name="align_icons" {if $ALIGN_ICONS}checked="checked"{/if}>
++          <span class="slider round"></span>
++        </label>
++        <span>{'Align names with icons'|@translate}</span>
++      </div>
++
++      <div style="display:flex; align-items:center; gap:12px;">
++        <label class="switch" title="{'When enabled, active plugins declaring Has Settings in their header are automatically added to the menubar if they have not registered via the hook.'|@translate}">
++          <input type="checkbox" name="fallback_plugins" {if $FALLBACK_PLUGINS}checked="checked"{/if}>
++          <span class="slider round"></span>
++        </label>
++        <span>{'Auto-add plugins with settings page'|@translate}</span>
++      </div>
++
++    </div>
++  </fieldset>
++
++  <div class="savebar-footer">
++    <div class="savebar-footer-start"></div>
++    <div class="savebar-footer-end">
++      <div class="savebar-footer-block">
++        <button class="buttonLike" type="submit" name="submit" {if $isWebmaster != 1}disabled{/if}><i class="icon-floppy"></i> {'Save Settings'|@translate}</button>
++      </div>
++    </div>
++  </div>
++
++</form>
++{else}
++<div class="no-items-notice">
++  <i class="icon-puzzle"></i>
++  <p>{'No plugin has registered a menubar entry.'|@translate}</p>
++  <p>{'Plugins can register entries using the %s hook.'|@translate|@sprintf:'<code>admin_menubar_plugin_links</code>'}</p>
++</div>
++{/if}
+diff --git a/include/config_default.inc.php b/include/config_default.inc.php
+index 4dc7fec47..2774c2321 100644
+--- a/include/config_default.inc.php
++++ b/include/config_default.inc.php
+@@ -1059,6 +1059,42 @@ $conf['default_filters_views'] = array(
+   'last_filters_conf' => true,
+ );
+ 
++// +-----------------------------------------------------------------------+
++// |                     admin menubar plugin links                        |
++// +-----------------------------------------------------------------------+
++
++// Order of plugin entries in the admin menubar sidebar.
++// Array of plugin IDs in desired display order.
++// Managed via Admin > Plugins > Menubar tab.
++$conf['admin_menubar_order'] = array();
++
++// Plugin entries hidden from the admin menubar sidebar.
++// Array of plugin IDs that should not appear.
++$conf['admin_menubar_hidden'] = array();
++
++// Separator definitions for grouping plugin entries in the menubar.
++// Array keyed by separator ID with optional 'label' property.
++$conf['admin_menubar_separators'] = array();
++
++// Keep the plugin submenu always expanded in the admin sidebar.
++// When true, the submenu stays open regardless of which section is active.
++$conf['admin_menubar_always_open'] = false;
++
++// Truncate long plugin names in the menubar with ellipsis and scroll on hover.
++// When false, long names wrap to the next line instead.
++$conf['admin_menubar_truncate_names'] = true;
++
++// Reserve an empty space for plugin entries with no icon, so names align with
++// entries that have an icon. When false, the name uses the full available width.
++$conf['admin_menubar_align_icons'] = true;
++
++// When true, any active plugin declaring "Has Settings: true/webmaster" in its
++// main.inc.php header is automatically added to the menubar if it has not
++// registered itself via the admin_menubar_plugin_links hook.
++// These fallback entries are tagged with SOURCE=fallback and can be hidden/sorted
++// from Admin > Plugins > Menubar like any other entry.
++$conf['admin_menubar_fallback_plugins'] = true;
++
+ // +-----------------------------------------------------------------------+
+ // |                                 log                                   |
+ // +-----------------------------------------------------------------------+
+diff --git a/language/en_UK/admin.lang.php b/language/en_UK/admin.lang.php
+index 429e9d6f9..36022929c 100644
+--- a/language/en_UK/admin.lang.php
++++ b/language/en_UK/admin.lang.php
+@@ -1437,5 +1437,23 @@ $lang['Change logo'] = 'Change logo';
+ $lang['Latest update'] = 'Latest update';
+ $lang['See available updates'] = 'See available updates';
+ $lang['You are about to delete %s groups, are you sure?'] = 'You are about to delete %s groups, are you sure?';
++$lang['Plugin Menubar'] = 'Plugin Menubar';
++$lang['Manage entries'] = 'Manage entries';
++$lang['Add a separator'] = 'Add a separator';
++$lang['Remove separator'] = 'Remove separator';
++$lang['No plugin has registered a menubar entry.'] = 'No plugin has registered a menubar entry.';
++$lang['Plugins can register entries using the %s hook.'] = 'Plugins can register entries using the %s hook.';
++$lang['Keep plugin submenu always expanded'] = 'Keep plugin submenu always expanded';
++$lang['When enabled, the plugin list stays open in the sidebar regardless of which section is active.'] = 'When enabled, the plugin list stays open in the sidebar regardless of which section is active.';
++$lang['Menubar settings'] = 'Menubar settings';
++$lang['Truncate long names'] = 'Truncate long names';
++$lang['When enabled, names exceeding 23 characters are truncated with ellipsis and scroll on hover. When disabled, names wrap to the next line.'] = 'When enabled, names exceeding 23 characters are truncated with ellipsis and scroll on hover. When disabled, names wrap to the next line.';
++$lang['Sort A to Z'] = 'Sort A to Z';
++$lang['Sort Z to A'] = 'Sort Z to A';
++$lang['Align names with icons'] = 'Align names with icons';
++$lang['When enabled, a blank space is reserved for entries without an icon, keeping all names aligned.'] = 'When enabled, a blank space is reserved for entries without an icon, keeping all names aligned.';
++$lang['Auto-add plugins with settings page'] = 'Auto-add plugins with settings page';
++$lang['When enabled, active plugins declaring Has Settings in their header are automatically added to the menubar if they have not registered via the hook.'] = 'When enabled, active plugins declaring "Has Settings" in their header are automatically added to the menubar if they have not registered via the hook.';
++
+ 
+ // Leave this line empty
+\ No newline at end of file
+diff --git a/language/fr_FR/admin.lang.php b/language/fr_FR/admin.lang.php
+index d65411763..604d48e64 100644
+--- a/language/fr_FR/admin.lang.php
++++ b/language/fr_FR/admin.lang.php
+@@ -1444,5 +1444,22 @@ $lang['Understood, do not show again'] = 'Compris, ne plus afficher';
+ $lang['Latest update'] = 'Dernière mise à jour';
+ $lang['See available updates'] = 'Voir les mises à jour disponibles';
+ $lang['You are about to delete %s groups, are you sure?'] = 'Vous êtes sur le point de supprimer %s groupes, êtes-vous sûr ?';
++$lang['Plugin Menubar'] = 'Menubar des plugins';
++$lang['Manage entries'] = 'Gérer les entrées';
++$lang['Add a separator'] = 'Ajouter un séparateur';
++$lang['Remove separator'] = 'Supprimer le séparateur';
++$lang['No plugin has registered a menubar entry.'] = 'Aucun plugin n\'a enregistré d\'entrée dans le menubar.';
++$lang['Plugins can register entries using the %s hook.'] = 'Les plugins peuvent enregistrer des entrées en utilisant le hook %s.';
++$lang['Keep plugin submenu always expanded'] = 'Garder le sous-menu plugins toujours ouvert';
++$lang['When enabled, the plugin list stays open in the sidebar regardless of which section is active.'] = 'Quand cette option est activée, la liste des plugins reste ouverte dans la barre latérale quelle que soit la section active.';
++$lang['Menubar settings'] = 'Paramètres du menubar';
++$lang['Truncate long names'] = 'Tronquer les noms longs';
++$lang['When enabled, names exceeding 23 characters are truncated with ellipsis and scroll on hover. When disabled, names wrap to the next line.'] = 'Quand cette option est activée, les noms dépassant 23 caractères sont tronqués avec des points de suspension et défilent au survol. Sinon, les noms passent à la ligne.';
++$lang['Sort A to Z'] = 'Trier A à Z';
++$lang['Sort Z to A'] = 'Trier Z à A';
++$lang['Align names with icons'] = 'Aligner les noms sur les icônes';
++$lang['When enabled, a blank space is reserved for entries without an icon, keeping all names aligned.'] = 'Quand cette option est activée, un espace vide est réservé pour les entrées sans icône, afin d\'aligner tous les noms.';
++$lang['Auto-add plugins with settings page'] = 'Ajouter automatiquement les plugins avec page de configuration';
++$lang['When enabled, active plugins declaring Has Settings in their header are automatically added to the menubar if they have not registered via the hook.'] = 'Quand cette option est activée, les plugins actifs déclarant "Has Settings" dans leur en-tête sont automatiquement ajoutés au menubar s\'ils ne se sont pas enregistrés via le hook.';
+ 
+ // Leave this line empty
+diff --git a/admin/themes/default/theme.css b/admin/themes/default/theme.css
+index d3366a700..0af8fb568 100644
+--- a/admin/themes/default/theme.css
++++ b/admin/themes/default/theme.css
+@@ -2173,6 +2173,82 @@ a.admin-main:hover {color:#fff;}
+   float: right;
+   margin-right: 5px;
+   margin-top: 2px;
++  transition: transform 0.25s ease;
++  transform: rotate(0deg);
++}
++
++#menubar dl.is-open > dt i.open-menu {
++  transform: rotate(-180deg);
++}
++
++#menubar .menubar-separator { padding: 0 20px; }
++#menubar .menubar-separator hr { border: none; border-top: 1px solid #555; margin: 4px 0; }
++
++#menubar dt a.dt-label { display:inline; }
++
++/* Plugin menubar name display modes */
++#menubar-plugins dd li a {
++  display: flex;
++  align-items: center;
++}
++
++/* Clipping container: sits right after the icon, clips the scrolling text */
++#menubar-plugins dd li a .menubar-name-clip {
++  display: inline-block;
++  overflow: hidden;
++  text-overflow: ellipsis;
++  white-space: nowrap;
++  width: 154px;
++  vertical-align: middle;
++}
++
++/* On hover: remove ellipsis and enable transform for scroll animation */
++#menubar-plugins dd li a:hover .menubar-name-clip {
++  text-overflow: clip;
++}
++
++#menubar-plugins dd li a:hover .menubar-name {
++  display: inline-block;
++}
++
++/* The scrolling text element */
++#menubar-plugins dd li a .menubar-name {
++  display: inline;
++  white-space: nowrap;
++}
++
++/* Scroll on hover for overflowing names only */
++#menubar-plugins dd li a:hover .menubar-name.name-overflow {
++  animation: menubar-name-scroll var(--scroll-duration, 3s) linear infinite;
++}
++
++@keyframes menubar-name-scroll {
++  0%   { transform: translateX(0); }
++  10%  { transform: translateX(0); }
++  60%  { transform: translateX(var(--scroll-dist, 0px)); }
++  100% { transform: translateX(var(--scroll-dist, 0px)); }
++}
++
++/* Wrap mode: clip expands to allow wrapping */
++#menubar-plugins dd li a.name-wrap .menubar-name-clip {
++  overflow: visible;
++  max-width: 154px;
++}
++
++#menubar-plugins dd li a.name-wrap .menubar-name {
++  white-space: normal;
++  word-break: break-word;
++  line-height: 1.3;
++}
++
++#pluginMenubarForm {
++  padding-bottom: 50px;
++}
++
++#menubar-plugins dd li a .menubar-icon-placeholder {
++  display: inline-block;
++  width: 1em;
++  margin-right: 0.3em;
+ }
+ 
+ @media all and (max-height: 920px) {
+@@ -2336,53 +2412,50 @@ h2:lang(en) { text-transform:capitalize; }
+ /**
+  * Informations box in administration
+  */
+-.infos, .errors, .warnings, .messages {
++.infos, .errors, .warnings, .messages, #photosAddContent .infos {
+   text-align: left;
+   margin: 20px;
+-  padding: 5px;
+-  font-weight:bold;
+-  min-height: 54px;
++  padding: 0 5px;
++  font-weight:600;
+   flex-direction: row;
+   display: flex;
+   align-items: center;
+   justify-content: start;
+ }
+ 
+-.infos ul, .errors ul, .warnings ul, .messages ul {
+-  margin:1_px 0;
++.infos ul, .errors ul, .warnings ul, .messages ul, #photosAddContent .infos ul{
++  margin:10px 0;
+   padding-left:0;
+ }
+ 
+-.infos ul {color: #3C3C3C;}
+-
+-.eiw-icon {
+-  font-size: 40px;
+-  margin-right: 10px;
++#photosAddContent .infos ul li,
++.eiw ul li{
++  padding:2px;
++  margin-bottom:2px;
++  display:flex;
++  align-items:center;
+ }
+ 
+-.infos {
+-  color: #0a0;
+-  background-color:#c2f5c2;
++#photosAddContent .infos ul li:not(:last-child),
++.eiw ul li:not(:last-child){
++  margin-bottom:10px;
+ }
+ 
+-.infos a {color: #3C3C3C;}
+-
+-.errors {
+-  color: #f22;
+-  background-color: #ffd5dc;
+-  border-left: 4px solid #f22;
++#photosAddContent .infos ul li a,
++.eiw ul li a{
++  border-radius:4px;
++  margin:0 5px;
++  padding: 2px 7px;
+ }
+ 
+-.warnings {
+-  color: #ee8800;
+-  background-color:#ffdd99;
+-  border-left:4px solid #ee8800;
++#photosAddContent .infos ul li a i,
++.eiw ul li a i{
++  margin-right:5px;
+ }
+ 
+-.messages {
+-  color: #00529b;
+-  background-color:#bde5f8;
+-  border-left:4px solid #00529b;
++.eiw-icon {
++  font-size: 16px;
++  margin-right: 5px;
+ }
+ 
+ .jGrowl-popup-icon{
+@@ -2394,6 +2467,7 @@ h2:lang(en) { text-transform:capitalize; }
+ .success {
+   color: #3C3C3C;
+ }
++
+ div.jGrowl div.jGrowl-notification.success{
+   background: none;
+   background-color: #D6FFCF;
