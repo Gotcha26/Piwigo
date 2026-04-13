@@ -13,9 +13,6 @@ This document defines the development workflow, branch strategy, and standards f
   - Patches on releases are reproducible and maintainable
   - New patches must adapt when new releases are published
 
-### Never commit
-Never commit anything to the **Mainstream Piwigo**. Ask before commit to the **Upstream Piwigo**.
-
 ---
 
 ## 🌿 Branch Strategy

@@ -12,10 +12,6 @@
 /local/*
 !/local/**/index.php
 
-# Local-only project files (not versioned, not published)
-.local/
-.claude/
-
 # IntelliJ
 .idea
 *.iml

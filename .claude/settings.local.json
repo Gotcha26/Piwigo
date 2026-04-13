@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"d:/Gotcha/Documents/DIY/GitHub/Piwigo/Piwigo/Piwigo\" status)",
+      "Bash(/tmp/summary.txt:*)",
+      "Bash(\"d:/Gotcha/Documents/DIY/GitHub/Piwigo/Piwigo/Piwigo/local/scripts/STATUS.md\":*)",
+      "Bash(dos2unix local/patches/2534-admin-menubar-hook.patch)",
+      "Bash(sed -i 's/\\\\r$//' local/patches/2534-admin-menubar-hook.patch)",
+      "Bash(git cherry-pick:*)",
+      "Bash(cp /tmp/2523_patch/0001-fixes-2523-remove-obsolete-pwg_nl2br-wrapper-and-fix.patch local/patches/2523-pwg_nl2br-remove-wrapper.patch)",
+      "Bash(cp /tmp/2523_patch/0002-fixes-2523-add-intelligent-HTML-detection-to-prevent.patch local/patches/2523-pwg_nl2br-add-detection.patch)",
+      "Bash(mv 2534-admin-menubar-hook.patch 2534-admin-menubar-hook.patch.old)",
+      "Bash(mv 2534-admin-menubar-hook_tested.patch 2534-admin-menubar-hook.patch)",
+      "Edit(~/.claude/skills/piwigo-menubar-plugin/**)",
+      "Bash(patch --dry-run -p1)",
+      "Bash(mv local/patches/2534-admin-menubar-hook.patch.old local/patches/2534-admin-menubar-hook-original.patch)",
+      "Bash(mv local/patches/2534-admin-menubar-hook.patch local/patches/2534-admin-menubar-hook-corrections-only.patch)",
+      "Bash(cp local/patches/2534-admin-menubar-hook-original.patch local/patches/2534-admin-menubar-hook_fixed.patch)",
+      "Bash(rm local/patches/2534-admin-menubar-hook_fixed.patch)",
+      "Bash(patch -p1)",
+      "Read(//^diff --git a/admin/themes/default/**)"
+    ],
+    "additionalDirectories": [
+      "\\tmp",
+      "D:\\Gotcha\\Documents\\DIY\\GitHub\\Piwigo\\Piwigo\\Piwigo",
+      "d:\\Gotcha\\Documents\\DIY\\GitHub\\Piwigo\\Piwigo\\Piwigo\\local"
+    ]
+  }
+}
